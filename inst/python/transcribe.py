@@ -38,7 +38,7 @@ def transcribe_audio(
     language : str, optional
         Language code (e.g., "en"). None = auto-detect.
     device : str
-        "cuda" or "cpu".
+        "cuda", "cpu", or "mps" (Apple Silicon).
     suppress_numerals : bool
         If True, suppress numerical digits in output.
     output_format : str
@@ -51,10 +51,10 @@ def transcribe_audio(
     """
     from whisnemo.core.transcription_helpers import transcribe
 
-    mtypes = {"cpu": "int8", "cuda": "float16"}
+    mtypes = {"cpu": "int8", "cuda": "float16", "mps": "float32"}
 
     if output_dir is None:
-        output_dir = os.path.dirname(audio_path)
+        output_dir = os.path.dirname(os.path.abspath(audio_path))
     os.makedirs(output_dir, exist_ok=True)
 
     logger.info(f"Transcribing: {audio_path} with model={model_name}, device={device}")
