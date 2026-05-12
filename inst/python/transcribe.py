@@ -25,7 +25,7 @@ def transcribe_audio(
     output_format="csv",
 ):
     """
-    Transcribe a single audio file using Whisper (non-batched, via faster-whisper).
+    Transcribe a single audio file using WhisNemo's transcription helper.
 
     Parameters
     ----------
@@ -38,7 +38,7 @@ def transcribe_audio(
     language : str, optional
         Language code (e.g., "en"). None = auto-detect.
     device : str
-        "cuda" or "cpu".
+        "cuda", "cpu", or "mps" (Apple Silicon).
     suppress_numerals : bool
         If True, suppress numerical digits in output.
     output_format : str
@@ -50,18 +50,15 @@ def transcribe_audio(
         Keys: "transcript" (full text), "output_files" (list of paths written).
     """
     from whisnemo.core.transcription_helpers import transcribe
-    import whisperx
-    import torch
 
-    mtypes = {"cpu": "int8", "cuda": "float16"}
+    mtypes = {"cpu": "int8", "cuda": "float16", "mps": "float32"}
 
     if output_dir is None:
-        output_dir = os.path.dirname(audio_path)
+        output_dir = os.path.dirname(os.path.abspath(audio_path))
     os.makedirs(output_dir, exist_ok=True)
 
     logger.info(f"Transcribing: {audio_path} with model={model_name}, device={device}")
 
-    # Run Whisper
     whisper_results, detected_lang = transcribe(
         audio_path, language, model_name,
         mtypes[device], suppress_numerals, device,
@@ -69,7 +66,6 @@ def transcribe_audio(
 
     full_transcript = " ".join(seg["text"].strip() for seg in whisper_results)
 
-    # Write outputs
     base = os.path.splitext(os.path.basename(audio_path))[0]
     output_files = []
     formats = ["csv", "txt", "srt"] if output_format == "all" else [output_format]

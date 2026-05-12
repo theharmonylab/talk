@@ -1,6 +1,6 @@
 """
 Standalone diarization module for the talk R package.
-Uses WhisNemo's full pipeline: Demucs → Whisper → CTC alignment → NeMo MSDD.
+Uses WhisNemo's full pipeline: Demucs → Whisper → NeMo MSDD.
 
 Called from R via reticulate::source_python("diarize.py")
 
@@ -9,6 +9,7 @@ Usage as function:
 """
 
 import os
+import shutil
 import logging
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
@@ -52,7 +53,7 @@ def diarize_audio(
     language : str, optional
         Language code. None = auto-detect.
     device : str
-        "cuda" or "cpu".
+        "cuda", "cpu", or "mps" (Apple Silicon).
     stemming : bool
         If True, run Demucs vocal separation first.
     suppress_numerals : bool
@@ -91,18 +92,26 @@ def diarize_audio(
         output_formats = ["csv"]
 
     if output_dir is None:
-        output_dir = os.path.dirname(audio_path)
+        output_dir = os.path.dirname(os.path.abspath(audio_path))
 
-    # Change to output_dir so temp files land there
+    # run_diarize writes outputs next to the input audio file, so we copy
+    # the audio into output_dir and run on the copy. This ensures all
+    # outputs (csv, txt, srt) land in output_dir.
     original_cwd = os.getcwd()
     os.makedirs(output_dir, exist_ok=True)
+
+    audio_basename = os.path.basename(audio_path)
+    audio_copy = os.path.join(output_dir, audio_basename)
+    if os.path.abspath(audio_path) != os.path.abspath(audio_copy):
+        shutil.copy2(audio_path, audio_copy)
+
     os.chdir(output_dir)
 
     try:
         from whisnemo.core.diarize import run_diarize
 
         run_diarize(
-            audio_path=audio_path,
+            audio_path=audio_copy,
             stemming=stemming,
             suppress_numerals=suppress_numerals,
             model_name=model_name,
@@ -122,11 +131,11 @@ def diarize_audio(
             domain_type=domain_type,
         )
 
-        # Collect output files
-        base = os.path.splitext(os.path.basename(audio_path))[0]
+        # Collect output files from output_dir
+        base = os.path.splitext(audio_basename)[0]
         output_files = []
         for ext in [".txt", ".srt", "_formatted.csv", "_formatted_corrected.csv"]:
-            candidate = os.path.join(os.path.dirname(audio_path), f"{base}{ext}")
+            candidate = os.path.join(output_dir, f"{base}{ext}")
             if os.path.isfile(candidate):
                 output_files.append(candidate)
 
