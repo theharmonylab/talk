@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.Rbuildignore
 docs
 .DS_Store
 # Compiled source #
@@ -22,3 +23,4 @@ docs
 [#]*#
 *~
 __pycache__/
+.positai

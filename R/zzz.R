@@ -1,3 +1,16 @@
+#' @noRd
+.onLoad <- function(libname, pkgname) {
+  # Prevent reticulate >= 1.39 from auto-initialising its uv-managed Python venv
+  # before talkrpp_initialize() can specify the correct conda environment.
+  # Set both the env var and the R option; reticulate checks whichever comes first.
+  if (Sys.getenv("RETICULATE_USE_MANAGED_VENV") == "") {
+    Sys.setenv(RETICULATE_USE_MANAGED_VENV = "FALSE")
+  }
+  if (is.null(getOption("reticulate.use_managed_venv"))) {
+    options(reticulate.use_managed_venv = FALSE)
+  }
+}
+
 #' @importFrom utils packageVersion
 #' @noRd
 .onAttach <- function(libname, pkgname) {

@@ -1,21 +1,4 @@
-cython==3.0.11
-wget==3.2
-nemo_toolkit==1.20.0
-git+https://github.com/m-bain/whisperX.git@78dcfaab51005aa703ee21375f81ed31bc248560
-git+https://github.com/adefossez/demucs.git@b9ab48cad45976ba42b2ff17b229c071f0df9390
-git+https://github.com/oliverguhr/deepmultilingualpunctuation.git@5a0dd7f4fd56687f59405aa8eba1144393d8b74b
-git+https://github.com/MahmoudAshraf97/ctc-forced-aligner.git@abd458dd879305566cd4ed0c8624c95f22e3126a
-huggingface-hub==0.23.2
-ctranslate2==3.24.0
-PyYAML==6.0.2
-hydra-core==1.3.2
-youtokentome==1.0.6
-inflect==7.4.0
-webdataset==0.2.100
-editdistance==0.8.1
-jiwer==3.0.5
-ffmpeg==1.4
-pytorch-lightning==1.9.4
-ipython==8.31.0
-ffmpeg-python==0.2.0
-librosa
+# WhisNemo package (includes all transcription + diarization dependencies)
+# Install torch first for your CUDA version:
+#   pip install torch==2.1.0 torchaudio==2.1.0 --index-url https://download.pytorch.org/whl/cu118
+whisnemo @ git+https://github.com/humanlab/WhisNemo.git@dumrania/timing-and-postprocess
