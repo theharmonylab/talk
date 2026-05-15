@@ -26,8 +26,9 @@ SystemRequirements: Python (>= 3.6.0)
 LazyData: true
 BuildVignettes: true
 Imports:
-    reticulate, 
-    tibble
+    reticulate,
+    tibble,
+    callr
 RoxygenNote: 7.3.2
 Suggests: 
     knitr,

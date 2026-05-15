@@ -44,13 +44,27 @@ talkrpp_initialize <- function(python_executable = NULL,
   ## check settings and start reticulate python
   settings <- check_talkrpp_python_options()
   if (!is.null(settings)) {
-    if (settings$key == "talkrpp_python_executable") {
-      reticulate::use_python(settings$val, required = TRUE)
-    } else if (settings$key == "talkrpp_virtualenv") {
-      reticulate::use_virtualenv(settings$val, required = TRUE)
-    } else if (settings$key == "talkrpp_condaenv") {
-      reticulate::use_condaenv(settings$val, required = TRUE)
-    }
+    tryCatch({
+      if (settings$key == "talkrpp_python_executable") {
+        reticulate::use_python(settings$val, required = TRUE)
+      } else if (settings$key == "talkrpp_virtualenv") {
+        reticulate::use_virtualenv(settings$val, required = TRUE)
+      } else if (settings$key == "talkrpp_condaenv") {
+        reticulate::use_condaenv(settings$val, required = TRUE)
+      }
+    }, error = function(e) {
+      if (grepl("already been initialized", conditionMessage(e))) {
+        stop(
+          "A different Python has already been initialized in this R session.\n",
+          "Please restart R, then call talkrpp_initialize() before running any ",
+          "other code that uses Python.\n",
+          "(Initialized: ", reticulate::py_config()$python, ")\n",
+          "(Requested:   ", settings$val, ")",
+          call. = FALSE
+        )
+      }
+      stop(e)
+    })
   }
 
   # Importing this here may start importing necessary packages

@@ -30,8 +30,8 @@ conda_args <- reticulate:::conda_args
 #' You may also provide a custom character vector of specific package versions
 #' (e.g., c("torch==2.0.0", "transformers==4.19.2")) for advanced use cases.
 #'
-#' Alternatively, set to "talk_diarize" to install a fixed environment required for the diarization
-#' functionality, which currently depends on a specific combination of package versions.
+#' Set to "talk_diarize" to install a separate environment required for diarization
+#' (\code{talkTranscribeDiarise}), which has different dependencies from the standard environment.
 #' @param python_version character; default is "python_version_system_specific_defaults". You can specify your
 #' Python version for the condaenv yourself.
 #'   installation.
@@ -61,42 +61,15 @@ talkrpp_install <- function(
     prompt = TRUE) {
 
   # Set system specific default versions
+  diarize_install <- FALSE
+
   if (rpp_version[[1]] == "talk_diarize") {
-    rpp_version <- c(
-
-      #### for Nemo
-      "cython==3.0.11",
-      "wget==3.2",
-      "nemo_toolkit==1.20.0",
-      "git+https://github.com/m-bain/whisperX.git@78dcfaab51005aa703ee21375f81ed31bc248560",
-      "git+https://github.com/adefossez/demucs.git@b9ab48cad45976ba42b2ff17b229c071f0df9390",
-      "git+https://github.com/oliverguhr/deepmultilingualpunctuation.git@5a0dd7f4fd56687f59405aa8eba1144393d8b74b",
-      "git+https://github.com/MahmoudAshraf97/ctc-forced-aligner.git@abd458dd879305566cd4ed0c8624c95f22e3126a",
-      "huggingface-hub==0.23.2",
-      #     "ctranslate2==3.24.0",
-      "PyYAML==6.0.2",
-      "hydra-core==1.3.2",
-      "youtokentome==1.0.5", # 1.0.6
-      "inflect==7.4.0",
-      "webdataset==0.2.100",
-      "editdistance==0.8.1",
-      "jiwer==3.0.5",
-      ###        "ffmpeg==1.4", instead: brew install ffmpeg
-      "pytorch-lightning==1.9.4",
-      "ipython==8.31.0",
-      "ffmpeg-python==0.2.0",
-      "librosa",
-      "torchaudio",
-      "llvmlite==0.40.0",
-      "numba==0.57.0"
-    )
-
+    diarize_install <- TRUE
   }
 
   if (rpp_version[[1]] == "rpp_version_system_specific_defaults") {
     if (is_osx() || is_linux()) {
       rpp_version <- c(
-        # talk
         "numpy==1.26.0",
         "torch==2.2.0",
         "torchaudio==2.2.0",
@@ -104,7 +77,6 @@ talkrpp_install <- function(
         "soundfile==0.12.1",
         "transformers==4.38.0",
         "huggingface_hub==0.20.0",
-#
         "argparse",
         "pandas",
         "tqdm",
@@ -114,7 +86,6 @@ talkrpp_install <- function(
     }
     if (is_windows()) {
       rpp_version <- c(
-        # talk
         "numpy==1.26.0",
         "torch==2.2.0",
         "torchaudio==2.2.0",
@@ -122,7 +93,6 @@ talkrpp_install <- function(
         "soundfile==0.12.1",
         "transformers==4.38.0",
         "huggingface_hub==0.20.0",
-
         "argparse",
         "pandas",
         "tqdm",
@@ -133,13 +103,7 @@ talkrpp_install <- function(
   }
 
   if (python_version == "python_version_system_specific_defaults") {
-    if (is_osx() || is_linux()) {
-      python_version <- "3.10.12"
-    }
-
-    if (is_windows()) {
-      python_version <- "3.10.12"
-    }
+    python_version <- "3.10.12"
   }
 
   # verify os
@@ -190,13 +154,12 @@ talkrpp_install <- function(
     }
 
     # process the installation of talk required python packages
-    process_talkrpp_installation_conda(conda,
-      rpp_version,
-      python_version,
-      prompt,
-      envname = envname,
-      pip = pip
-    )
+    if (diarize_install) {
+      process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
+    } else {
+      process_talkrpp_installation_conda(conda, rpp_version, python_version, prompt,
+                                         envname = envname, pip = pip)
+    }
 
     # Windows installation
   } else {
@@ -225,13 +188,12 @@ talkrpp_install <- function(
       reticulate::install_miniconda(update = update_conda, force = force_conda)
     }
     # process the installation of talk required python packages
-    process_talkrpp_installation_conda(conda,
-      rpp_version,
-      python_version,
-      prompt,
-      envname = envname,
-      pip = pip
-    )
+    if (diarize_install) {
+      process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
+    } else {
+      process_talkrpp_installation_conda(conda, rpp_version, python_version, prompt,
+                                         envname = envname, pip = pip)
+    }
   }
 
   message(colourise(
@@ -264,28 +226,67 @@ process_talkrpp_installation_conda <- function(conda,
   conda_env <- subset(conda_envs, conda_envs$name == envname)
   if (nrow(conda_env) == 1) {
     message(
-      "Using existing conda environment ", envname, " for talk installation\n.",
-      "\ntalk:",
-      paste(rpp_version, collapse = ", "), "will be installed.  "
+      "Using existing conda environment ", envname, " for talk installation.\n",
+      "talk: ", paste(rpp_version, collapse = ", "), " will be installed.\n"
     )
   } else {
     message(
-      "A new conda environment", paste0('"', envname, '"'), "will be created and \npython required packages:",
-      paste(rpp_version, collapse = ", "), "will be installed.  "
+      "A new conda environment ", paste0('"', envname, '"'), " will be created and\n",
+      "python required packages: ", paste(rpp_version, collapse = ", "), " will be installed.\n"
     )
-    message("Creating", envname, "conda environment for talk installation...\n")
+    message("Creating ", envname, " conda environment for talk installation...\n")
     python_packages <- ifelse(is.null(python_version), "python=3.9",
       sprintf("python=%s", python_version)
     )
-    python <- reticulate::conda_create(envname, packages = python_packages, conda = conda)
+    reticulate::conda_create(envname, packages = python_packages, conda = conda)
   }
 
   message("Installing talk required python packages...\n")
-  packages <- rpp_version
-
-  reticulate::conda_install(envname, packages, pip = pip, conda = conda)
+  reticulate::conda_install(envname, rpp_version, pip = pip, conda = conda)
 }
 
+process_talkrpp_diarize_installation <- function(conda,
+                                                  python_version,
+                                                  prompt = TRUE,
+                                                  envname = "talkrpp_condaenv") {
+  conda_envs <- reticulate::conda_list(conda = conda)
+  if (prompt) {
+    ans <- utils::menu(c("Confirm", "Cancel"), title = "Confirm that a new conda environment will be set up.")
+    if (ans == 2) stop("condaenv setup is cancelled by user", call. = FALSE)
+  }
+  conda_env <- subset(conda_envs, conda_envs$name == envname)
+  if (nrow(conda_env) == 0) {
+    message("Creating ", envname, " conda environment for talk diarize installation...\n")
+    python_packages <- ifelse(is.null(python_version), "python=3.10",
+      sprintf("python=%s", python_version)
+    )
+    reticulate::conda_create(envname, packages = python_packages, conda = conda)
+  }
+
+  # Step 1: torch — CUDA index URL on Linux/Windows, plain PyPI on macOS
+  torch_packages <- c("torch==2.11.0", "torchaudio==2.11.0", "torchcodec")
+  torch_pip_options <- if (is_linux() || is_windows()) {
+    c("--index-url", "https://download.pytorch.org/whl/cu128")
+  } else {
+    character(0)
+  }
+  message("Installing torch for diarize environment...\n")
+  reticulate::conda_install(envname, torch_packages, pip = TRUE, conda = conda,
+                            pip_options = torch_pip_options)
+
+  # Step 2: whisnemo with constraints (prevents NeMo from upgrading torch)
+  whisnemo_constraints <- paste0(
+    "https://raw.githubusercontent.com/humanlab/WhisNemo/",
+    "dumrania/timing-and-postprocess/constraints/runtime.txt"
+  )
+  whisnemo_package <- paste0(
+    "whisnemo[diarize] @ git+https://github.com/humanlab/WhisNemo.git",
+    "@dumrania/timing-and-postprocess"
+  )
+  message("Installing whisnemo with dependency constraints...\n")
+  reticulate::conda_install(envname, whisnemo_package, pip = TRUE, conda = conda,
+                            pip_options = c("-c", whisnemo_constraints))
+}
 
 
 process_talkrpp_installation_virtualenv <- function(python = "/usr/local/bin/python3.9",

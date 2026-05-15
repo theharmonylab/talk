@@ -1,96 +1,141 @@
 
-
 #' Transcribe and Diarize Audio Recordings
 #'
-#' This function transcribes one or more audio recordings using Whisper and optionally performs speaker diarization using NeMo.
-#' It is intended for converting speech audio into text and, if enabled, assigning speaker labels to segments.
+#' Transcribes one or more audio recordings using Whisper and performs speaker
+#' diarization using NeMo. Runs in a subprocess to avoid OpenMP conflicts on macOS.
+#' Requires the diarize conda environment installed via
+#' \code{talkrpp_install(rpp_version = "talk_diarize")}.
 #'
-#' @param audio (string or list) Path to a single audio file (e.g., `.wav`) or a list of file paths. Each file is processed separately.
-#' @param output_dir (string) Directory where output files (transcripts, speaker-labeled files) will be saved. If NULL, uses a temp directory.
-#' @param stemming (logical) If TRUE, words will be stemmed in the output.
-#' @param suppress_numerals (logical) If TRUE, numerals will be removed from the transcript.
-#' @param model (string) Name of the Whisper model to use (e.g., `"medium.en"`). Available models include `tiny`, `base`, `small`, `medium`, `large`.
-#' @param batch_size (integer) Number of audio segments to process at once. Useful for large files or GPU acceleration. Default is 8.
-#' @param max_retries (integer) Maximum number of retries for failed decoding attempts. Default is 1.
-#' @param max_oom_retries (integer) Maximum number of retries if a CUDA out-of-memory error occurs.
-#' @param language (string) Language code (e.g., `"en"`, `"sv"`). If NULL, Whisper will attempt to detect the language.
-#' @param rerun_completed_audio_file (logical) If TRUE, forces rerun even if output already exists.
-#' @param diarize_worker (logical) If TRUE, enables speaker diarization using NeMo. Requires NeMo and related dependencies.
-#' @param temp_dir (string) Optional path to temporary directory for intermediate files.
+#' @param audio (string or character vector) Path to a single audio file
+#'   (e.g., \code{.wav}) or a vector of file paths. Each file is processed separately.
+#' @param output_dir (string) Directory where output files will be saved. Defaults to the current working directory.
+#' @param model_name (string) Whisper model name (e.g., \code{"medium.en"}). Options: \code{"tiny"}, \code{"base"}, \code{"small"}, \code{"medium"}, \code{"large"}.
+#' @param language (string) Language code (e.g., \code{"en"}, \code{"sv"}). If NULL, Whisper auto-detects the language.
+#' @param device (string) Device to run inference on: \code{"cuda"}, \code{"cpu"}, or \code{"mps"} (Apple Silicon, experimental).
+#'   Defaults to \code{"cpu"} on macOS and \code{"cuda"} elsewhere.
+#' @param stemming (logical) If TRUE, run Demucs vocal separation before transcription.
+#' @param suppress_numerals (logical) If TRUE, suppress numerical digits in transcription output.
+#' @param batch_size (integer) Number of audio segments processed at once. Default is 8.
+#' @param num_speakers (integer) Expected number of speakers for NeMo clustering.
+#' @param oracle_num_speakers (logical) If TRUE, force the exact speaker count in NeMo clustering.
+#' @param vad_model (string) NeMo VAD model name. Default is \code{"vad_multilingual_marblenet"}.
+#' @param speaker_model (string) NeMo speaker embedding model. Default is \code{"titanet_large"}.
+#' @param onset (numeric) VAD onset threshold. Default is 0.8.
+#' @param offset (numeric) VAD offset threshold. Default is 0.5.
+#' @param pad_offset (numeric) VAD pad offset. Default is -0.05.
+#' @param domain_type (string) NeMo domain type: \code{"telephonic"}, \code{"meeting"}, or \code{"general"}.
+#' @param output_formats (character vector) Output formats to write. Any of \code{"csv"}, \code{"txt"}, \code{"srt"}. Default is \code{"csv"}.
+#' @param remove_stutters (logical) If TRUE, apply stutter removal post-processing on CSV output.
+#' @param stutter_threshold (numeric) Similarity threshold for stutter detection. Default is 0.8.
+#' @param condaenv (string) Name of the conda environment with the diarize stack installed.
+#'   Default is \code{"talkrpp_diarize_condaenv"}.
 #'
-#' @return Nothing returned. Output files (e.g., transcripts and diarization CSVs) are written to `output_dir`.
+#' @return A list with keys \code{output_files} (character vector of written file paths)
+#'   and \code{status} (\code{"success"} or \code{"error"}).
 #'
 #' @details
-#' The function internally uses Python libraries through `reticulate`. It selects `"cuda"` if a GPU is available and properly configured;
-#' otherwise it defaults to `"cpu"`. You can retrieve and parse output files manually from the specified `output_dir`.
+#' Output files (diarized CSVs, SRTs, or TXT transcripts) are written to \code{output_dir}.
+#'
+#' On macOS, NeMo's OpenMP library conflicts with R's when loaded in the same process.
+#' This function automatically runs diarization in a subprocess via \code{callr::r()} to
+#' avoid the crash.
 #'
 #' @examples
 #' \dontrun{
-#' wav_path <- system.file("extdata", "test_short.wav", package = "talk")
-#' talk::talkTranscribeDiarise(audio = wav_path)
+#' wav_path <- system.file("extdata", "test_diarise.wav", package = "talk")
+#' talk::talkTranscribeDiarise(audio = wav_path, num_speakers = 2)
 #' }
 #'
 #' @seealso \code{\link{talkEmbed}}, \code{\link{talkText}}, \code{\link{talkrpp_initialize}}
-#' @importFrom reticulate source_python py_module_available import
-#' @importFrom tibble as_tibble
 #' @export
 talkTranscribeDiarise <- function(
-    audio = NULL,
+    audio,
     output_dir = getwd(),
-    model = "medium.en",
+    model_name = "medium.en",
+    language = NULL,
+    device = if (Sys.info()[["sysname"]] == "Darwin") "cpu" else "cuda",
     stemming = TRUE,
     suppress_numerals = FALSE,
     batch_size = 8,
-    max_retries = 1,
-    max_oom_retries = 2,
-    language = NULL,
-    rerun_completed_audio_file = FALSE,
-    diarize_worker = TRUE,
-    temp_dir = getwd()
-    ){
+    num_speakers = 2,
+    oracle_num_speakers = TRUE,
+    vad_model = "vad_multilingual_marblenet",
+    speaker_model = "titanet_large",
+    onset = 0.8,
+    offset = 0.5,
+    pad_offset = -0.05,
+    domain_type = "telephonic",
+    output_formats = "csv",
+    remove_stutters = FALSE,
+    stutter_threshold = 0.8,
+    condaenv = "talkrpp_diarize_condaenv"
+    ) {
 
-  reticulate::source_python(system.file("python",
-                                        "whisnemo_diarization.py",
-                                        package = "talk",
-                                        mustWork = TRUE
-  ))
+  diarize_py <- system.file("python", "diarize.py", package = "talk", mustWork = TRUE)
 
-  # Determine device (CUDA vs CPU)
-  device <- "cpu"
-  if (reticulate::py_module_available("torch")) {
+  callr::r(
+    func = function(audio, output_dir, model_name, language, device,
+                    stemming, suppress_numerals, batch_size, num_speakers,
+                    oracle_num_speakers, vad_model, speaker_model,
+                    onset, offset, pad_offset, domain_type, output_formats,
+                    remove_stutters, stutter_threshold, condaenv, diarize_py) {
 
-    torch <- reticulate::import("torch")
-    if (torch$cuda$is_available()) {
-      device <- "cuda"
-    }
-  }
+      Sys.setenv(KMP_DUPLICATE_LIB_OK        = "TRUE")
+      Sys.setenv(OMP_NUM_THREADS             = "1")
+      Sys.setenv(MKL_NUM_THREADS             = "1")
+      Sys.setenv(OPENBLAS_NUM_THREADS        = "1")
+      Sys.setenv(NUMBA_NUM_THREADS           = "1")
+      Sys.setenv(KMP_INIT_AT_FORK            = "FALSE")
+      Sys.setenv(OBJC_DISABLE_INITIALIZE_FORK_SAFETY = "YES")
 
+      reticulate::use_condaenv(condaenv, required = TRUE)
+      reticulate::source_python(diarize_py)
 
-  # Call the Python function
-  transcribe_and_diarize(
-    audio = audio,
-    output_dir = output_dir,
-    stemming = stemming,
-    suppress_numerals = suppress_numerals,
-    model_name = "medium",
-    batch_size = batch_size,
-    max_retries = max_retries,
-    max_oom_retries = max_oom_retries,
-    language = language,
-    device = device,
-    rerun_completed_audio_file = rerun_completed_audio_file,
-    diarize_worker = FALSE, #diarize_worker,
-    temp_dir = "/Users/oscarkjell/Desktop/1 Projects/0 Research/0_talk"
+      diarize_audio(
+        audio_path          = audio,
+        output_dir          = output_dir,
+        model_name          = model_name,
+        language            = language,
+        device              = device,
+        stemming            = stemming,
+        suppress_numerals   = suppress_numerals,
+        batch_size          = batch_size,
+        num_speakers        = num_speakers,
+        oracle_num_speakers = oracle_num_speakers,
+        vad_model           = vad_model,
+        speaker_model       = speaker_model,
+        onset               = onset,
+        offset              = offset,
+        pad_offset          = pad_offset,
+        domain_type         = domain_type,
+        output_formats      = as.list(output_formats),
+        remove_stutters     = remove_stutters,
+        stutter_threshold   = stutter_threshold
+      )
+    },
+    args = list(
+      audio               = audio,
+      output_dir          = output_dir,
+      model_name          = model_name,
+      language            = language,
+      device              = device,
+      stemming            = stemming,
+      suppress_numerals   = suppress_numerals,
+      batch_size          = batch_size,
+      num_speakers        = num_speakers,
+      oracle_num_speakers = oracle_num_speakers,
+      vad_model           = vad_model,
+      speaker_model       = speaker_model,
+      onset               = onset,
+      offset              = offset,
+      pad_offset          = pad_offset,
+      domain_type         = domain_type,
+      output_formats      = output_formats,
+      remove_stutters     = remove_stutters,
+      stutter_threshold   = stutter_threshold,
+      condaenv            = condaenv,
+      diarize_py          = diarize_py
+    ),
+    show = TRUE
   )
-
-#  embeddings <- embeddings[[1]]
-#
-#  emb_tibble <- tibble::as_tibble(
-#    t(embeddings), # Transpose the vector into a single-row matrix
-#    .name_repair = ~ paste0("Dim", seq_along(embeddings)) # Assign column names
-#  )
-
-  return(emb_tibble)
 }
-
-
