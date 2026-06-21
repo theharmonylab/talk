@@ -264,7 +264,7 @@ process_talkrpp_diarize_installation <- function(conda,
   }
 
   # Step 1: torch — CUDA index URL on Linux/Windows, plain PyPI on macOS
-  torch_packages <- c("torch==2.11.0", "torchaudio==2.11.0", "torchcodec")
+  torch_packages <- c("torch==2.11.0", "torchaudio==2.11.0")
   torch_pip_options <- if (is_linux() || is_windows()) {
     c("--index-url", "https://download.pytorch.org/whl/cu128")
   } else {
