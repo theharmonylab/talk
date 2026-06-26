@@ -2,6 +2,7 @@
 
 export(find_talkrpp_env)
 export(talkEmbed)
+export(talkEmbedSegments)
 export(talkText)
 export(talkTranscribeDiarise)
 export(talkrpp_initialize)
