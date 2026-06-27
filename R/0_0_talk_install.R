@@ -264,7 +264,7 @@ process_talkrpp_diarize_installation <- function(conda,
   }
 
   # Step 1: torch — CUDA index URL on Linux/Windows, plain PyPI on macOS
-  torch_packages <- c("torch==2.11.0", "torchaudio==2.11.0", "torchcodec")
+  torch_packages <- c("torch==2.11.0", "torchaudio==2.11.0")
   torch_pip_options <- if (is_linux() || is_windows()) {
     c("--index-url", "https://download.pytorch.org/whl/cu128")
   } else {
@@ -280,11 +280,31 @@ process_talkrpp_diarize_installation <- function(conda,
     "dumrania/timing-and-postprocess/constraints/runtime.txt"
   )
   whisnemo_package <- paste0(
-    "whisnemo[diarize] @ git+https://github.com/humanlab/WhisNemo.git",
+    "whisnemo[diarize,embed] @ git+https://github.com/humanlab/WhisNemo.git",
     "@dumrania/timing-and-postprocess"
   )
   message("Installing whisnemo with dependency constraints...\n")
+  # Two passes so re-installs onto an existing env actually update the code:
+  # a git package keeps the same version string, so a plain install is a no-op
+  # ("Requirement already satisfied") and never picks up new submodules such as
+  # whisnemo.core.embed. --force-reinstall --no-deps refreshes just the package
+  # files; the second pass (no force) then fills in any missing extra deps
+  # without re-downloading the whole stack (e.g. torch).
   reticulate::conda_install(envname, whisnemo_package, pip = TRUE, conda = conda,
+                            pip_options = c("-c", whisnemo_constraints,
+                                            "--force-reinstall", "--no-deps"))
+  reticulate::conda_install(envname, whisnemo_package, pip = TRUE, conda = conda,
+                            pip_options = c("-c", whisnemo_constraints))
+
+  # Step 3: WhiSPA (required for talkEmbedSegments(model = "whispa")).
+  # Installed from the canonical humanlab repo, which is pip-installable.
+  # Same two-pass approach as whisnemo so existing envs are refreshed.
+  whispa_package <- "whispa @ git+https://github.com/humanlab/WhiSPA.git"
+  message("Installing WhiSPA for segment-level embeddings...\n")
+  reticulate::conda_install(envname, whispa_package, pip = TRUE, conda = conda,
+                            pip_options = c("-c", whisnemo_constraints,
+                                            "--force-reinstall", "--no-deps"))
+  reticulate::conda_install(envname, whispa_package, pip = TRUE, conda = conda,
                             pip_options = c("-c", whisnemo_constraints))
 }
 

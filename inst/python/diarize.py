@@ -86,7 +86,22 @@ def diarize_audio(
     Returns
     -------
     dict
-        Keys: "output_files" (list of output paths), "status" ("success" or "error").
+        A dictionary with the following keys:
+
+        - "transcript" : pandas.DataFrame or None
+            The diarized transcript, one row per utterance, with columns
+            "speaker", "start_timestamp", "end_timestamp", and "message".
+            When called from R via reticulate, this is converted to an R
+            data.frame automatically. None if the run failed or no
+            transcript CSV was produced.
+        - "output_files" : list of str
+            Paths to the files written in output_dir (.txt, .srt,
+            _formatted.csv, and _formatted_corrected.csv if stutter
+            removal was enabled).
+        - "status" : str
+            "success" or "error".
+        - "error" : str
+            Present only when status is "error"; the error message.
     """
     if output_formats is None:
         output_formats = ["csv"]
@@ -139,11 +154,29 @@ def diarize_audio(
             if os.path.isfile(candidate):
                 output_files.append(candidate)
 
-        return {"output_files": output_files, "status": "success"}
+        # Load the formatted transcript into a DataFrame for direct use in R.
+        # reticulate converts a pandas DataFrame to an R data.frame.
+        # Prefer the stutter-corrected CSV if it exists, else the formatted CSV.
+        import pandas as pd
+        transcript_df = None
+        corrected_csv = os.path.join(output_dir, f"{base}_formatted_corrected.csv")
+        formatted_csv = os.path.join(output_dir, f"{base}_formatted.csv")
+        csv_to_load = corrected_csv if os.path.isfile(corrected_csv) else formatted_csv
+        if os.path.isfile(csv_to_load):
+            try:
+                transcript_df = pd.read_csv(csv_to_load)
+            except Exception as read_err:
+                logger.warning(f"Could not read transcript CSV {csv_to_load}: {read_err}")
+
+        return {
+            "transcript": transcript_df,
+            "output_files": output_files,
+            "status": "success",
+        }
 
     except Exception as e:
         logger.error(f"Diarization failed for {audio_path}: {e}")
-        return {"output_files": [], "status": "error", "error": str(e)}
+        return {"transcript": None, "output_files": [], "status": "error", "error": str(e)}
 
     finally:
         os.chdir(original_cwd)
