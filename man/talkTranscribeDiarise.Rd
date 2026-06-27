@@ -5,60 +5,93 @@
 \title{Transcribe and Diarize Audio Recordings}
 \usage{
 talkTranscribeDiarise(
-  audio = NULL,
+  audio,
   output_dir = getwd(),
-  model = "medium.en",
+  model_name = "medium.en",
+  language = NULL,
+  device = if (Sys.info()[["sysname"]] == "Darwin") "cpu" else "cuda",
   stemming = TRUE,
   suppress_numerals = FALSE,
   batch_size = 8,
-  max_retries = 1,
-  max_oom_retries = 2,
-  language = NULL,
-  rerun_completed_audio_file = FALSE,
-  diarize_worker = TRUE,
-  temp_dir = getwd()
+  num_speakers = 2,
+  oracle_num_speakers = TRUE,
+  vad_model = "vad_multilingual_marblenet",
+  speaker_model = "titanet_large",
+  onset = 0.8,
+  offset = 0.5,
+  pad_offset = -0.05,
+  domain_type = "telephonic",
+  output_formats = "csv",
+  remove_stutters = FALSE,
+  stutter_threshold = 0.8,
+  condaenv = "talkrpp_diarize_condaenv"
 )
 }
 \arguments{
-\item{audio}{(string or list) Path to a single audio file (e.g., `.wav`) or a list of file paths. Each file is processed separately.}
+\item{audio}{(string or character vector) Path to a single audio file
+(e.g., \code{.wav}) or a vector of file paths. Each file is processed separately.}
 
-\item{output_dir}{(string) Directory where output files (transcripts, speaker-labeled files) will be saved. If NULL, uses a temp directory.}
+\item{output_dir}{(string) Directory where output files will be saved. Defaults to the current working directory.}
 
-\item{model}{(string) Name of the Whisper model to use (e.g., `"medium.en"`). Available models include `tiny`, `base`, `small`, `medium`, `large`.}
+\item{model_name}{(string) Whisper model name (e.g., \code{"medium.en"}). Options: \code{"tiny"}, \code{"base"}, \code{"small"}, \code{"medium"}, \code{"large"}.}
 
-\item{stemming}{(logical) If TRUE, words will be stemmed in the output.}
+\item{language}{(string) Language code (e.g., \code{"en"}, \code{"sv"}). If NULL, Whisper auto-detects the language.}
 
-\item{suppress_numerals}{(logical) If TRUE, numerals will be removed from the transcript.}
+\item{device}{(string) Device to run inference on: \code{"cuda"}, \code{"cpu"}, or \code{"mps"} (Apple Silicon, experimental).
+Defaults to \code{"cpu"} on macOS and \code{"cuda"} elsewhere.}
 
-\item{batch_size}{(integer) Number of audio segments to process at once. Useful for large files or GPU acceleration. Default is 8.}
+\item{stemming}{(logical) If TRUE, run Demucs vocal separation before transcription.}
 
-\item{max_retries}{(integer) Maximum number of retries for failed decoding attempts. Default is 1.}
+\item{suppress_numerals}{(logical) If TRUE, suppress numerical digits in transcription output.}
 
-\item{max_oom_retries}{(integer) Maximum number of retries if a CUDA out-of-memory error occurs.}
+\item{batch_size}{(integer) Number of audio segments processed at once. Default is 8.}
 
-\item{language}{(string) Language code (e.g., `"en"`, `"sv"`). If NULL, Whisper will attempt to detect the language.}
+\item{num_speakers}{(integer) Expected number of speakers for NeMo clustering.}
 
-\item{rerun_completed_audio_file}{(logical) If TRUE, forces rerun even if output already exists.}
+\item{oracle_num_speakers}{(logical) If TRUE, force the exact speaker count in NeMo clustering.}
 
-\item{diarize_worker}{(logical) If TRUE, enables speaker diarization using NeMo. Requires NeMo and related dependencies.}
+\item{vad_model}{(string) NeMo VAD model name. Default is \code{"vad_multilingual_marblenet"}.}
 
-\item{temp_dir}{(string) Optional path to temporary directory for intermediate files.}
+\item{speaker_model}{(string) NeMo speaker embedding model. Default is \code{"titanet_large"}.}
+
+\item{onset}{(numeric) VAD onset threshold. Default is 0.8.}
+
+\item{offset}{(numeric) VAD offset threshold. Default is 0.5.}
+
+\item{pad_offset}{(numeric) VAD pad offset. Default is -0.05.}
+
+\item{domain_type}{(string) NeMo domain type: \code{"telephonic"}, \code{"meeting"}, or \code{"general"}.}
+
+\item{output_formats}{(character vector) Output formats to write. Any of \code{"csv"}, \code{"txt"}, \code{"srt"}. Default is \code{"csv"}.}
+
+\item{remove_stutters}{(logical) If TRUE, apply stutter removal post-processing on CSV output.}
+
+\item{stutter_threshold}{(numeric) Similarity threshold for stutter detection. Default is 0.8.}
+
+\item{condaenv}{(string) Name of the conda environment with the diarize stack installed.
+Default is \code{"talkrpp_diarize_condaenv"}.}
 }
 \value{
-Nothing returned. Output files (e.g., transcripts and diarization CSVs) are written to `output_dir`.
+A list with keys \code{output_files} (character vector of written file paths)
+  and \code{status} (\code{"success"} or \code{"error"}).
 }
 \description{
-This function transcribes one or more audio recordings using Whisper and optionally performs speaker diarization using NeMo.
-It is intended for converting speech audio into text and, if enabled, assigning speaker labels to segments.
+Transcribes one or more audio recordings using Whisper and performs speaker
+diarization using NeMo. Runs in a subprocess to avoid OpenMP conflicts on macOS.
+Requires the diarize conda environment installed via
+\code{talkrpp_install(rpp_version = "talk_diarize")}.
 }
 \details{
-The function internally uses Python libraries through `reticulate`. It selects `"cuda"` if a GPU is available and properly configured;
-otherwise it defaults to `"cpu"`. You can retrieve and parse output files manually from the specified `output_dir`.
+Output files (diarized CSVs, SRTs, or TXT transcripts) are written to \code{output_dir}.
+
+On macOS, NeMo's OpenMP library conflicts with R's when loaded in the same process.
+This function automatically runs diarization in a subprocess via \code{callr::r()} to
+avoid the crash.
 }
 \examples{
 \dontrun{
-wav_path <- system.file("extdata", "test_short.wav", package = "talk")
-talk::talkTranscribeDiarise(audio = wav_path)
+wav_path <- system.file("extdata", "test_diarise.wav", package = "talk")
+talk::talkTranscribeDiarise(audio = wav_path, num_speakers = 2)
 }
 
 }

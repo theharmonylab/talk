@@ -44,6 +44,8 @@ reference:
     contents:
       - talkText
       - talkEmbed
+      - talkTranscribeDiarise
+      - talkEmbedSegments
 
 news:
   one_page: true
