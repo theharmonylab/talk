@@ -9,12 +9,13 @@ talkEmbedSegments(
   transcript,
   model = "whisper",
   embeddings = "encoder",
-  participant_only = TRUE,
+  participant_only = FALSE,
   whisper_model_id = NULL,
   whispa_model_id = "Jarhatz/WhiSPA-V1-Small",
   whispa_repo_path = NULL,
   output_dir = NULL,
-  device = NULL
+  device = NULL,
+  condaenv = "talkrpp_diarize_condaenv"
 )
 }
 \arguments{
@@ -31,7 +32,10 @@ timestamps, and a \code{speaker_role} column if \code{participant_only=TRUE}.}
 \code{"decoder"}, or \code{"both"}. Ignored for \code{model="whispa"}.}
 
 \item{participant_only}{(logical) If TRUE, only segments with
-\code{speaker_role == "participant"} are embedded.}
+\code{speaker_role == "participant"} are embedded. Defaults to FALSE
+because the \code{transcript} returned by \code{\link{talkTranscribeDiarise}}
+has no \code{speaker_role} column; set TRUE only with a transcript that
+provides one.}
 
 \item{whisper_model_id}{(string) Optional override of the Whisper model id.}
 
@@ -44,11 +48,16 @@ only if WhiSPA is not pip-installed.}
 
 \item{device}{(string) \code{"cpu"}, \code{"cuda"}, or \code{"mps"}. If NULL,
 chooses \code{"cuda"} when available, else \code{"cpu"}.}
+
+\item{condaenv}{(string) Name of the conda environment that holds the embed
+stack (whisnemo[embed] and WhiSPA). Default \code{"talkrpp_diarize_condaenv"},
+i.e. the same environment installed by
+\code{talkrpp_install(rpp_version = "talk_diarize")}.}
 }
 \value{
 A tibble of segment-level embeddings (one row per segment), or, for
-\code{model="whisper"} with \code{embeddings="both"}, a named list of two
-tibbles (\code{encoder}, \code{decoder}).
+  \code{model="whisper"} with \code{embeddings="both"}, a named list of two
+  tibbles (\code{encoder}, \code{decoder}).
 }
 \description{
 Unlike \code{\link{talkEmbed}}, which returns one embedding per whole audio
@@ -56,7 +65,8 @@ file, \code{talkEmbedSegments} produces one embedding per diarized segment.
 It takes an audio file together with its diarized transcript (e.g. the output
 of \code{\link{talkTranscribeDiarise}}) and embeds each segment, optionally
 restricting to participant segments.
-
+}
+\details{
 Two backends are supported: Whisper (encoder and/or decoder hidden-state
 summary statistics) and WhiSPA (a single speech-psychological embedding per
 segment).
@@ -73,6 +83,7 @@ emb <- talkEmbedSegments(
 )
 emb
 }
+
 }
 \seealso{
 \code{\link{talkEmbed}}, \code{\link{talkTranscribeDiarise}}.
