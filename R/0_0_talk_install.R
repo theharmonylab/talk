@@ -188,6 +188,15 @@ process_talkrpp_diarize_installation <- function(conda,
   # audio"). Install ffmpeg via the system package manager instead (see README /
   # CI workflows).
 
+  # Windows: conda's default CA bundle can be truncated, which breaks the
+  # diarisation model download with "[ASN1: NOT_ENOUGH_DATA]". Force-reinstall
+  # the certificate packages from conda-forge to repair the bundle.
+  if (is_windows()) {
+    message("Repairing CA certificates for the diarize environment (Windows)...\n")
+    system2(conda, c("install", "--yes", "--name", envname, "-c", "conda-forge",
+                     "--force-reinstall", "ca-certificates", "certifi"))
+  }
+
   # Step 1: torch — CUDA index URL on Linux/Windows, plain PyPI on macOS
   torch_packages <- c("torch==2.11.0", "torchaudio==2.11.0")
   torch_pip_options <- if (is_linux() || is_windows()) {
