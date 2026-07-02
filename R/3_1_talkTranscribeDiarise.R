@@ -100,6 +100,20 @@ talkTranscribeDiarise <- function(
       Sys.setenv(PYTHONIOENCODING = "utf-8")
 
       reticulate::use_condaenv(condaenv, required = TRUE)
+
+      # On Windows, conda's OpenSSL can fail to parse its default CA bundle when
+      # downloading models, aborting with "[ASN1: NOT_ENOUGH_DATA]". Point the
+      # SSL stack at certifi's bundle (shipped in the environment). Gated to
+      # Windows so it cannot affect the working macOS/Linux setups.
+      if (.Platform$OS.type == "windows") {
+        cafile <- tryCatch(reticulate::import("certifi")$where(), error = function(e) NULL)
+        if (!is.null(cafile) && nzchar(cafile)) {
+          Sys.setenv(SSL_CERT_FILE      = cafile)
+          Sys.setenv(REQUESTS_CA_BUNDLE = cafile)
+          Sys.setenv(CURL_CA_BUNDLE     = cafile)
+        }
+      }
+
       reticulate::source_python(diarize_py)
 
       diarize_audio(
