@@ -13,18 +13,28 @@ the backend's return_enc / return_dec flags.
 import os
 import logging
 
-# See diarize.py: on Windows, urllib's default SSL context enumerates the
-# Windows certificate store, which can contain entries OpenSSL 3.x cannot
-# parse ("[ASN1: NOT_ENOUGH_DATA]"). Use certifi's bundle for urllib instead.
+# See diarize.py: on Windows, loading the default SSL certificates enumerates
+# the Windows certificate store, which can contain entries OpenSSL 3.x cannot
+# parse ("[ASN1: NOT_ENOUGH_DATA]"). Wrap SSLContext.load_default_certs so a
+# failing store enumeration falls back to certifi's bundle; this covers every
+# code path that builds a default SSL context.
 if os.name == "nt":
     try:
         import ssl
         import certifi
 
-        def _certifi_https_context(*args, **kwargs):
-            return ssl.create_default_context(cafile=certifi.where())
+        if not getattr(ssl, "_talk_certifi_fallback", False):
+            _orig_load_default_certs = ssl.SSLContext.load_default_certs
 
-        ssl._create_default_https_context = _certifi_https_context
+            def _load_default_certs(self, purpose=ssl.Purpose.SERVER_AUTH):
+                try:
+                    _orig_load_default_certs(self, purpose)
+                except ssl.SSLError:
+                    pass
+                self.load_verify_locations(cafile=certifi.where())
+
+            ssl.SSLContext.load_default_certs = _load_default_certs
+            ssl._talk_certifi_fallback = True
     except Exception:
         pass
 

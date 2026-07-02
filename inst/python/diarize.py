@@ -12,23 +12,34 @@ import os
 import shutil
 import logging
 
-# On Windows, Python's DEFAULT SSL context (used by urllib/wget, which the
-# NeMo/whisper model downloads go through) enumerates the Windows certificate
-# store via load_default_certs(). Some Windows images (e.g. GitHub-hosted
-# runners) contain a store entry that OpenSSL 3.x cannot parse, so every
-# urllib download aborts with "ssl.SSLError: [ASN1: NOT_ENOUGH_DATA]".
-# requests is unaffected because it uses certifi's bundle directly. Point
-# urllib's default HTTPS context at certifi's bundle so the Windows store is
-# never enumerated.
+# On Windows, loading the default SSL certificates enumerates the Windows
+# certificate store, and some Windows images (e.g. GitHub-hosted runners)
+# contain a store entry that OpenSSL 3.x cannot parse: every download made
+# through a default SSL context (urllib/wget, used by the NeMo/whisper model
+# downloads) then aborts with "ssl.SSLError: [ASN1: NOT_ENOUGH_DATA]".
+# requests is unaffected because it uses certifi's bundle directly. Wrap
+# SSLContext.load_default_certs so a failing store enumeration falls back to
+# certifi's bundle (which is also always added; loading extra CAs is
+# harmless). This covers EVERY code path that builds a default context
+# (ssl.create_default_context, urllib's default HTTPS context, aiohttp, ...),
+# unlike patching ssl._create_default_https_context, which only covers urllib.
 if os.name == "nt":
     try:
         import ssl
         import certifi
 
-        def _certifi_https_context(*args, **kwargs):
-            return ssl.create_default_context(cafile=certifi.where())
+        if not getattr(ssl, "_talk_certifi_fallback", False):
+            _orig_load_default_certs = ssl.SSLContext.load_default_certs
 
-        ssl._create_default_https_context = _certifi_https_context
+            def _load_default_certs(self, purpose=ssl.Purpose.SERVER_AUTH):
+                try:
+                    _orig_load_default_certs(self, purpose)
+                except ssl.SSLError:
+                    pass
+                self.load_verify_locations(cafile=certifi.where())
+
+            ssl.SSLContext.load_default_certs = _load_default_certs
+            ssl._talk_certifi_fallback = True
     except Exception:
         pass
 
