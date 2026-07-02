@@ -8,10 +8,6 @@ library(talk)
 
 test_that("talkEmbedSegments returns segment-level embeddings", {
   skip_on_cran()
-  # Requires diarisation, which is skipped on the Windows CI runner (a runner
-  # model-download quirk, not a platform limitation; see
-  # test_4_talkTranscribeDiarise.R).
-  skip_on_os("windows")
 
   envname <- "talk_test_env"
   skip_if_not(

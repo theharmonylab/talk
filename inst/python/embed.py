@@ -13,6 +13,21 @@ the backend's return_enc / return_dec flags.
 import os
 import logging
 
+# See diarize.py: on Windows, urllib's default SSL context enumerates the
+# Windows certificate store, which can contain entries OpenSSL 3.x cannot
+# parse ("[ASN1: NOT_ENOUGH_DATA]"). Use certifi's bundle for urllib instead.
+if os.name == "nt":
+    try:
+        import ssl
+        import certifi
+
+        def _certifi_https_context(*args, **kwargs):
+            return ssl.create_default_context(cafile=certifi.where())
+
+        ssl._create_default_https_context = _certifi_https_context
+    except Exception:
+        pass
+
 logger = logging.getLogger(__name__)
 
 

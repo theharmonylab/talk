@@ -12,6 +12,26 @@ import os
 import shutil
 import logging
 
+# On Windows, Python's DEFAULT SSL context (used by urllib/wget, which the
+# NeMo/whisper model downloads go through) enumerates the Windows certificate
+# store via load_default_certs(). Some Windows images (e.g. GitHub-hosted
+# runners) contain a store entry that OpenSSL 3.x cannot parse, so every
+# urllib download aborts with "ssl.SSLError: [ASN1: NOT_ENOUGH_DATA]".
+# requests is unaffected because it uses certifi's bundle directly. Point
+# urllib's default HTTPS context at certifi's bundle so the Windows store is
+# never enumerated.
+if os.name == "nt":
+    try:
+        import ssl
+        import certifi
+
+        def _certifi_https_context(*args, **kwargs):
+            return ssl.create_default_context(cafile=certifi.where())
+
+        ssl._create_default_https_context = _certifi_https_context
+    except Exception:
+        pass
+
 logging.basicConfig(level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s")
 logger = logging.getLogger(__name__)
 
