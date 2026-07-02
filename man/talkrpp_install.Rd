@@ -42,8 +42,8 @@ Python and package versions based on the user's operating system (e.g., macOS, W
 You may also provide a custom character vector of specific package versions
 (e.g., c("torch==2.0.0", "transformers==4.19.2")) for advanced use cases.
 
-Alternatively, set to "talk_diarize" to install a fixed environment required for the diarization
-functionality, which currently depends on a specific combination of package versions.}
+Set to "talk_diarize" to install a separate environment required for diarization
+(\code{talkTranscribeDiarise}), which has different dependencies from the standard environment.}
 
 \item{python_version}{character; default is "python_version_system_specific_defaults". You can specify your
 Python version for the condaenv yourself.

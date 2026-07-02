@@ -448,7 +448,7 @@ def hgTransformerGetEmbedding(
                     raise AssertionError('Not implemented yet...')
 
 #            all_embs.append(embedding)
-            all_embs.append(embedding.numpy().tolist())
+            all_embs.append(embedding.cpu().numpy().tolist())
         except Exception as e:
             print(f'\"{audio_filepath}\" failed with the following error:')
             print(Warning(e))
@@ -459,15 +459,22 @@ def hgTransformerGetEmbedding(
 
 
 def preprocess_audio(audio_path):
-    import torchaudio
-    waveform, sample_rate = torchaudio.load(audio_path)
+    import soundfile as sf
+    import librosa
+    # Load with soundfile/librosa rather than torchaudio.load, which routes
+    # through torchcodec and can fail to load its shared library in some
+    # environments (e.g. the diarisation env). soundfile reads the same files.
+    _sf_data, sample_rate = sf.read(audio_path, dtype="float32", always_2d=True)
     # Convert stereo (or multi-channel) to mono if needed   
-    if waveform.shape[0] > 1:
-        waveform = torch.mean(waveform, dim=0, keepdim=True)
+    if _sf_data.shape[1] > 1:
+        _sf_data = _sf_data.mean(axis=1)
+    else:
+        _sf_data = _sf_data[:, 0]
     # Resample if necessary (Whisper requires 16kHz input)
     if sample_rate != 16000:
-        waveform = torchaudio.transforms.Resample(orig_freq=sample_rate, new_freq=16000)(waveform)
-    return waveform
+        _sf_data = librosa.resample(_sf_data, orig_sr=sample_rate, target_sr=16000)
+    # Return shape (1, samples) to match the previous torchaudio.load output
+    return torch.from_numpy(_sf_data).unsqueeze(0)
 
 
 # def mean_pooling(embeddings, attention_mask):
