@@ -40,6 +40,8 @@ reference:
       - talkrpp_install_virtualenv
       - talkrpp_uninstall
       - talkrpp_initialize
+      - find_talkrpp_env
+      - list_talkrpp_envs
   - title: Transform talk to word embeddings
     contents:
       - talkText

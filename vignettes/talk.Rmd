@@ -86,6 +86,17 @@ if (!find_talkrpp_env()) {
 }
 ```
 
+#### list_talkrpp_envs(): list the available environments
+Returns the names of the Python environments on your system (all conda
+environments, plus any virtualenvs) — handy for seeing which name to pass as
+`condaenv` (to `talkrpp_initialize()` / `talkTranscribeDiarise()`) or `envname`
+(to `talkrpp_install()`).
+
+```{r list-envs, eval = evaluate}
+list_talkrpp_envs()
+#> [1] "base" "talkrpp_condaenv" "talkrpp_diarize_condaenv" ...
+```
+
 ### Transcription and embeddings
 
 The example audio files ship with the package.
@@ -166,6 +177,7 @@ emb_whispa <- talkEmbedSegments(
 | `talkrpp_install()` | Install the Python backend (conda). |
 | `talkrpp_initialize()` | Activate an installed environment for this R session. |
 | `find_talkrpp_env()` | Check whether a talk environment exists. |
+| `list_talkrpp_envs()` | List the names of available Python environments. |
 | `talkText()` | Transcribe audio to text. |
 | `talkEmbed()` | Embed a whole audio file into one vector. |
 | `talkTranscribeDiarise()` | Transcribe and split a recording by speaker. |

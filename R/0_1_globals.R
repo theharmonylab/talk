@@ -3,6 +3,8 @@
 utils::globalVariables(c(
   # GENERAL
   "find_talkrpp", "hgTransformerGetEmbedding",
-  "hgTransformerTranscribe"
+  "hgTransformerTranscribe",
+  # Python functions sourced at runtime via reticulate::source_python()
+  "diarize_audio", "embed_audio"
 
 ))

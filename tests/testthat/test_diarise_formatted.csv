@@ -1,0 +1,7 @@
+speaker,start_timestamp,end_timestamp,message
+Speaker 0,00:00:01.180,00:00:02.760," Hello, how are you doing?"
+Speaker 1,00:00:03.460,00:00:04.720," Hi, I'm doing well."
+Speaker 0,00:00:05.220,00:00:06.020, What are you up to?
+Speaker 1,00:00:06.560,00:00:07.940, I'm just watching some TV.
+Speaker 0,00:00:08.880,00:00:09.700, I'm glad to hear.
+Speaker 0,00:00:10.320,00:00:10.500, Cool.

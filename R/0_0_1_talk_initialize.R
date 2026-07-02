@@ -129,6 +129,36 @@ find_talkrpp_env <- function() {
   return(found)
 }
 
+#' List available Python environments
+#'
+#' Lists the Python environments available on the system so you can see which
+#' name to pass to \code{talkrpp_initialize()} / \code{talkTranscribeDiarise()}
+#' (\code{condaenv}) or \code{talkrpp_install()} (\code{envname}). Unlike
+#' \code{\link{find_talkrpp_env}}, which only reports whether the default env
+#' exists, this returns the actual environment names.
+#'
+#' @return A character vector of environment names: all conda environments,
+#'   followed by any virtualenvs. \code{character(0)} if none are found (or if
+#'   no conda binary is available and there are no virtualenvs).
+#' @seealso \code{\link{find_talkrpp_env}}, \code{\link{talkrpp_initialize}}
+#' @export
+#' @examples
+#' \dontrun{
+#' list_talkrpp_envs()
+#' }
+list_talkrpp_envs <- function() {
+  conda_envs <- if (is.null(tryCatch(reticulate::conda_binary("auto"),
+                                     error = function(e) NULL))) {
+    character(0)
+  } else {
+    reticulate::conda_list(conda = "auto")$name
+  }
+
+  virtualenvs <- tryCatch(reticulate::virtualenv_list(), error = function(e) character(0))
+
+  unique(c(conda_envs, virtualenvs))
+}
+
 
 check_talkrpp_model <- function(py_exec) { ### , model
   options(warn = -1)

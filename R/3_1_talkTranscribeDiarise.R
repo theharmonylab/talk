@@ -88,6 +88,17 @@ talkTranscribeDiarise <- function(
       Sys.setenv(KMP_INIT_AT_FORK            = "FALSE")
       Sys.setenv(OBJC_DISABLE_INITIALIZE_FORK_SAFETY = "YES")
 
+      # Force a UTF-8 locale so Python does not fall back to the ascii codec
+      # (which fails to read non-ascii bytes, e.g. a UTF-8 BOM, and aborts
+      # diarization with "'ascii' codec can't decode byte ..."). Only set it
+      # when the session locale is not already UTF-8.
+      if (!grepl("utf-?8", Sys.getenv("LC_ALL"), ignore.case = TRUE) &&
+          !grepl("utf-?8", Sys.getenv("LANG"),   ignore.case = TRUE)) {
+        Sys.setenv(LC_ALL     = "en_US.UTF-8")
+        Sys.setenv(LANG       = "en_US.UTF-8")
+        Sys.setenv(PYTHONUTF8 = "1")
+      }
+
       reticulate::use_condaenv(condaenv, required = TRUE)
       reticulate::source_python(diarize_py)
 

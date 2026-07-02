@@ -31,18 +31,18 @@
 
   OMP_msg <- ""
   if (Sys.info()[["sysname"]] == "Darwin") {
-    skip_patch <- Sys.getenv("TEXT_SKIP_OMP_PATCH", unset = "FALSE")
+    skip_patch <- Sys.getenv("TALK_SKIP_OMP_PATCH", unset = "FALSE")
     if (tolower(skip_patch) != "true") {
       Sys.setenv(OMP_NUM_THREADS = "1")
       Sys.setenv(OMP_MAX_ACTIVE_LEVELS = "1")
       Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")
       OMP_msg <- c("\n MacOS detected: Setting OpenMP environment variables to avoid potential crash due to libomp conflicts. \n")
     } else {
-      OMP_msg <- c("Skipped setting OpenMP environment variables (TEXT_SKIP_OMP_PATCH is TRUE)")
+      OMP_msg <- c("Skipped setting OpenMP environment variables (TALK_SKIP_OMP_PATCH is TRUE)")
     }
   }
 
-  nowarranty <- c("The topics package is provided 'as is' without any warranty of any kind. \n")
+  nowarranty <- c("The talk package is provided 'as is' without any warranty of any kind. \n")
 
 
   packageStartupMessage(
