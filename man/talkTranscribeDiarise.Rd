@@ -24,7 +24,7 @@ talkTranscribeDiarise(
   output_formats = "csv",
   remove_stutters = FALSE,
   stutter_threshold = 0.8,
-  condaenv = "talkrpp_diarize_condaenv"
+  condaenv = "talkrpp_condaenv"
 )
 }
 \arguments{
@@ -68,8 +68,8 @@ Defaults to \code{"cpu"} on macOS and \code{"cuda"} elsewhere.}
 
 \item{stutter_threshold}{(numeric) Similarity threshold for stutter detection. Default is 0.8.}
 
-\item{condaenv}{(string) Name of the conda environment with the diarize stack installed.
-Default is \code{"talkrpp_diarize_condaenv"}.}
+\item{condaenv}{(string) Name of the conda environment with the talk stack installed.
+Default is \code{"talkrpp_condaenv"} (installed by \code{talkrpp_install()}).}
 }
 \value{
 A list with keys \code{output_files} (character vector of written file paths)
@@ -78,8 +78,7 @@ A list with keys \code{output_files} (character vector of written file paths)
 \description{
 Transcribes one or more audio recordings using Whisper and performs speaker
 diarization using NeMo. Runs in a subprocess to avoid OpenMP conflicts on macOS.
-Requires the diarize conda environment installed via
-\code{talkrpp_install(rpp_version = "talk_diarize")}.
+Requires the talk conda environment installed via \code{talkrpp_install()}.
 }
 \details{
 Output files (diarized CSVs, SRTs, or TXT transcripts) are written to \code{output_dir}.

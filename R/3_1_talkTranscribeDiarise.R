@@ -3,8 +3,7 @@
 #'
 #' Transcribes one or more audio recordings using Whisper and performs speaker
 #' diarization using NeMo. Runs in a subprocess to avoid OpenMP conflicts on macOS.
-#' Requires the diarize conda environment installed via
-#' \code{talkrpp_install(rpp_version = "talk_diarize")}.
+#' Requires the talk conda environment installed via \code{talkrpp_install()}.
 #'
 #' @param audio (string or character vector) Path to a single audio file
 #'   (e.g., \code{.wav}) or a vector of file paths. Each file is processed separately.
@@ -27,8 +26,8 @@
 #' @param output_formats (character vector) Output formats to write. Any of \code{"csv"}, \code{"txt"}, \code{"srt"}. Default is \code{"csv"}.
 #' @param remove_stutters (logical) If TRUE, apply stutter removal post-processing on CSV output.
 #' @param stutter_threshold (numeric) Similarity threshold for stutter detection. Default is 0.8.
-#' @param condaenv (string) Name of the conda environment with the diarize stack installed.
-#'   Default is \code{"talkrpp_diarize_condaenv"}.
+#' @param condaenv (string) Name of the conda environment with the talk stack installed.
+#'   Default is \code{"talkrpp_condaenv"} (installed by \code{talkrpp_install()}).
 #'
 #' @return A list with keys \code{output_files} (character vector of written file paths)
 #'   and \code{status} (\code{"success"} or \code{"error"}).
@@ -68,7 +67,7 @@ talkTranscribeDiarise <- function(
     output_formats = "csv",
     remove_stutters = FALSE,
     stutter_threshold = 0.8,
-    condaenv = "talkrpp_diarize_condaenv"
+    condaenv = "talkrpp_condaenv"
     ) {
 
   diarize_py <- system.file("python", "diarize.py", package = "talk", mustWork = TRUE)

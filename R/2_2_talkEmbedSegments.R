@@ -30,10 +30,10 @@
 #' @param output_dir (string) Optional directory to also write embedding CSV(s).
 #' @param device (string) \code{"cpu"}, \code{"cuda"}, or \code{"mps"}. If NULL,
 #'   chooses \code{"cuda"} when available, else \code{"cpu"}.
-#' @param condaenv (string) Name of the conda environment that holds the embed
-#'   stack (whisnemo[embed] and WhiSPA). Default \code{"talkrpp_diarize_condaenv"},
-#'   i.e. the same environment installed by
-#'   \code{talkrpp_install(rpp_version = "talk_diarize")}.
+#' @param condaenv (string) Name of the conda environment that holds the talk
+#'   stack (including whisnemo[embed] and WhiSPA). Default
+#'   \code{"talkrpp_condaenv"}, the single environment installed by
+#'   \code{talkrpp_install()}.
 #'
 #' @return A tibble of segment-level embeddings (one row per segment), or, for
 #'   \code{model="whisper"} with \code{embeddings="both"}, a named list of two
@@ -67,7 +67,7 @@ talkEmbedSegments <- function(
     whispa_repo_path = NULL,
     output_dir = NULL,
     device = NULL,
-    condaenv = "talkrpp_diarize_condaenv"){
+    condaenv = "talkrpp_condaenv"){
 
   embed_py <- system.file("python", "embed.py", package = "talk", mustWork = TRUE)
 

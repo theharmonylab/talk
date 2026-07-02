@@ -13,7 +13,7 @@ jobs:
     name: ${{ matrix.config.os }} (${{ matrix.config.r }})
 
     strategy:
-      fail-fast: true
+      fail-fast: false
       matrix:
         config:
           - {os: macOS-latest, r: 'release'}
@@ -117,6 +117,30 @@ jobs:
         run: |
           library(talk)
           talk::talkrpp_initialize(talkEmbed_test = TRUE)
+        shell: Rscript {0}
+
+      # Test 5. Smoke-test talkTranscribeDiarise() + talkEmbedSegments() in the
+      # single environment installed above (talkrpp_condaenv). Structural checks
+      # only (status/shape); exact transcript and embedding values differ across
+      # OS/arch, so they are not asserted here. Uses small whisper models to keep
+      # the download light.
+      - name: talkTranscribeDiarise and talkEmbedSegments -- diarisation smoke test
+        run: |
+          library(talk)
+          wav <- system.file("extdata", "test_diarise.wav", package = "talk")
+          diar <- talk::talkTranscribeDiarise(audio = wav, model_name = "tiny.en")
+          cat("diarise status:", diar$status, "\n")
+          stopifnot(identical(diar$status, "success"),
+                    is.data.frame(diar$transcript),
+                    nrow(diar$transcript) > 0)
+          emb <- talk::talkEmbedSegments(audio = wav,
+                                         transcript = diar$transcript,
+                                         model = "whisper",
+                                         embeddings = "encoder",
+                                         participant_only = FALSE,
+                                         whisper_model_id = "openai/whisper-tiny")
+          stopifnot(is.data.frame(emb), nrow(emb) == nrow(diar$transcript))
+          cat("talkEmbedSegments rows:", nrow(emb), "cols:", ncol(emb), "\n")
         shell: Rscript {0}
 
 

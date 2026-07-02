@@ -23,15 +23,11 @@ conda_args <- reticulate:::conda_args
 #' @param force_conda Boolean; force re-installation if Miniconda is already installed at the requested path?
 #' @param pip \code{TRUE} to use pip for installing rpp If \code{FALSE}, conda
 #' package manager with conda-forge channel will be used for installing rpp.
-#' @param rpp_version Character. Specifies the version set of Python packages to install.
-#' The default is "rpp_version_system_specific_defaults", which automatically selects compatible
-#' Python and package versions based on the user's operating system (e.g., macOS, Windows, Linux).
-#'
-#' You may also provide a custom character vector of specific package versions
-#' (e.g., c("torch==2.0.0", "transformers==4.19.2")) for advanced use cases.
-#'
-#' Set to "talk_diarize" to install a separate environment required for diarization
-#' (\code{talkTranscribeDiarise}), which has different dependencies from the standard environment.
+#' @param rpp_version Character. Retained for backwards compatibility; it no
+#' longer selects a lighter environment. talk installs a single environment
+#' containing the full stack (transcription, embeddings, diarisation and segment
+#' embeddings). The previous "talk_diarize" value is still accepted and behaves
+#' the same as the default.
 #' @param python_version character; default is "python_version_system_specific_defaults". You can specify your
 #' Python version for the condaenv yourself.
 #'   installation.
@@ -60,47 +56,11 @@ talkrpp_install <- function(
     python_path = NULL,
     prompt = TRUE) {
 
-  # Set system specific default versions
-  diarize_install <- FALSE
-
-  if (rpp_version[[1]] == "talk_diarize") {
-    diarize_install <- TRUE
-  }
-
-  if (rpp_version[[1]] == "rpp_version_system_specific_defaults") {
-    if (is_osx() || is_linux()) {
-      rpp_version <- c(
-        "numpy==1.26.0",
-        "torch==2.2.0",
-        "torchaudio==2.2.0",
-        "librosa==0.10.2",
-        "soundfile==0.12.1",
-        "transformers==4.38.0",
-        "huggingface_hub==0.20.0",
-        "argparse",
-        "pandas",
-        "tqdm",
-        "matplotlib",
-        "ffmpeg-python"
-      )
-    }
-    if (is_windows()) {
-      rpp_version <- c(
-        "numpy==1.26.0",
-        "torch==2.2.0",
-        "torchaudio==2.2.0",
-        "librosa==0.10.2",
-        "soundfile==0.12.1",
-        "transformers==4.38.0",
-        "huggingface_hub==0.20.0",
-        "argparse",
-        "pandas",
-        "tqdm",
-        "matplotlib",
-        "ffmpeg-python"
-      )
-    }
-  }
+  # The talk package uses a SINGLE conda environment that holds the full stack
+  # (transcription, embeddings, diarisation and segment embeddings), so
+  # talkrpp_install() always performs the full installation. The rpp_version and
+  # pip arguments are kept for backwards compatibility but no longer select a
+  # lighter environment.
 
   if (python_version == "python_version_system_specific_defaults") {
     python_version <- "3.10.12"
@@ -154,12 +114,7 @@ talkrpp_install <- function(
     }
 
     # process the installation of talk required python packages
-    if (diarize_install) {
-      process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
-    } else {
-      process_talkrpp_installation_conda(conda, rpp_version, python_version, prompt,
-                                         envname = envname, pip = pip)
-    }
+    process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
 
     # Windows installation
   } else {
@@ -188,12 +143,7 @@ talkrpp_install <- function(
       reticulate::install_miniconda(update = update_conda, force = force_conda)
     }
     # process the installation of talk required python packages
-    if (diarize_install) {
-      process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
-    } else {
-      process_talkrpp_installation_conda(conda, rpp_version, python_version, prompt,
-                                         envname = envname, pip = pip)
-    }
+    process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
   }
 
   message(colourise(
@@ -212,39 +162,6 @@ talkrpp_install <- function(
   invisible(NULL)
 }
 
-process_talkrpp_installation_conda <- function(conda,
-                                               rpp_version,
-                                               python_version,
-                                               prompt = TRUE,
-                                               envname = "talkrpp_condaenv",
-                                               pip = FALSE) {
-  conda_envs <- reticulate::conda_list(conda = conda)
-  if (prompt) {
-    ans <- utils::menu(c("Confirm", "Cancel"), title = "Confirm that a new conda environment will be set up.")
-    if (ans == 2) stop("condaenv setup is cancelled by user", call. = FALSE)
-  }
-  conda_env <- subset(conda_envs, conda_envs$name == envname)
-  if (nrow(conda_env) == 1) {
-    message(
-      "Using existing conda environment ", envname, " for talk installation.\n",
-      "talk: ", paste(rpp_version, collapse = ", "), " will be installed.\n"
-    )
-  } else {
-    message(
-      "A new conda environment ", paste0('"', envname, '"'), " will be created and\n",
-      "python required packages: ", paste(rpp_version, collapse = ", "), " will be installed.\n"
-    )
-    message("Creating ", envname, " conda environment for talk installation...\n")
-    python_packages <- ifelse(is.null(python_version), "python=3.9",
-      sprintf("python=%s", python_version)
-    )
-    reticulate::conda_create(envname, packages = python_packages, conda = conda)
-  }
-
-  message("Installing talk required python packages...\n")
-  reticulate::conda_install(envname, rpp_version, pip = pip, conda = conda)
-}
-
 process_talkrpp_diarize_installation <- function(conda,
                                                   python_version,
                                                   prompt = TRUE,
@@ -260,7 +177,9 @@ process_talkrpp_diarize_installation <- function(conda,
     python_packages <- ifelse(is.null(python_version), "python=3.10",
       sprintf("python=%s", python_version)
     )
-    reticulate::conda_create(envname, packages = python_packages, conda = conda)
+    # Include pip explicitly: newer conda does not add pip to a minimal env,
+    # which then breaks the pip-based installs below ("No module named pip").
+    reticulate::conda_create(envname, packages = c(python_packages, "pip"), conda = conda)
   }
 
   # Step 1: torch — CUDA index URL on Linux/Windows, plain PyPI on macOS

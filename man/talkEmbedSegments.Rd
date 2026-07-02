@@ -15,7 +15,7 @@ talkEmbedSegments(
   whispa_repo_path = NULL,
   output_dir = NULL,
   device = NULL,
-  condaenv = "talkrpp_diarize_condaenv"
+  condaenv = "talkrpp_condaenv"
 )
 }
 \arguments{
@@ -49,10 +49,9 @@ only if WhiSPA is not pip-installed.}
 \item{device}{(string) \code{"cpu"}, \code{"cuda"}, or \code{"mps"}. If NULL,
 chooses \code{"cuda"} when available, else \code{"cpu"}.}
 
-\item{condaenv}{(string) Name of the conda environment that holds the embed
-stack (whisnemo[embed] and WhiSPA). Default \code{"talkrpp_diarize_condaenv"},
-i.e. the same environment installed by
-\code{talkrpp_install(rpp_version = "talk_diarize")}.}
+\item{condaenv}{(string) Name of the conda environment that holds the talk
+stack (including whisnemo[embed] and WhiSPA). Default \code{"talkrpp_condaenv"},
+the single environment installed by \code{talkrpp_install()}.}
 }
 \value{
 A tibble of segment-level embeddings (one row per segment), or, for

@@ -13,9 +13,10 @@
 * Added `list_talkrpp_envs()` to list the available Python environments.
 
 ## Minor changes and fixes
-* Diarisation and segment embeddings use a dedicated conda environment,
-  installed with `talkrpp_install(rpp_version = "talk_diarize")`, separate from
-  the standard `talkrpp_install()` environment.
+* The talk package now uses a **single conda environment** (`talkrpp_condaenv`)
+  for all functions. `talkrpp_install()` installs the full stack (transcription,
+  embeddings, diarisation and segment embeddings), and
+  `talkTranscribeDiarise()` / `talkEmbedSegments()` default to that environment.
 * Cross-platform support for the diarisation/embedding backend (Linux, Windows,
   and macOS/Apple Silicon incl. MPS).
 * `talkrpp_install()` now reliably refreshes git-based Python packages when

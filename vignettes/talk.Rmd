@@ -28,16 +28,13 @@ This Getting Started tutorial is going through some central *talk* functions.
 
 In short the workflow includes to first transform audio recordings into text (speech-to-text) as well as embeddings (which can be used in downstream tasks, for example using textTrain functions in the text-package.
 
-talk uses **two separate Python environments**, because the diarisation stack is
-heavy and kept apart from the basic one:
-
-| Environment | Installed with | Used by |
-|---|---|---|
-| `talkrpp_condaenv` (default) | `talkrpp_install()` | `talkText()`, `talkEmbed()` |
-| `talkrpp_diarize_condaenv` | `talkrpp_install(rpp_version = "talk_diarize")` | `talkTranscribeDiarise()`, `talkEmbedSegments()` |
+talk uses a **single Python environment** (`talkrpp_condaenv`), installed once
+with `talkrpp_install()`. It contains the full stack, so all functions —
+`talkText()`, `talkEmbed()`, `talkTranscribeDiarise()` and `talkEmbedSegments()`
+— run in the same environment.
 
 The code chunks below are not run when the vignette is built (they download
-models and need the Python environments). Set `evaluate = TRUE` to run them
+models and need the Python environment). Set `evaluate = TRUE` to run them
 interactively.
 
 ```{r setup, eval = evaluate, warning=FALSE, message=FALSE}
@@ -47,20 +44,12 @@ library(talk)
 ### Setting up the Python backend
 
 #### talkrpp_install(): install the Python backend
-Creates a conda environment and installs the Python packages talk needs. Run it
-**once**. Use the default for the basic environment, or `rpp_version =
-"talk_diarize"` for the diarisation + segment-embedding environment.
+Creates the `talkrpp_condaenv` conda environment and installs the full talk
+stack (transcription, embeddings, diarisation and segment embeddings). Run it
+**once**.
 
 ```{r install, eval = evaluate}
-# Basic environment (talkText / talkEmbed)
-talkrpp_install()
-
-# Diarisation + segment-embedding environment
-talkrpp_install(
-  rpp_version = "talk_diarize",
-  envname     = "talkrpp_diarize_condaenv",
-  prompt      = FALSE
-)
+talkrpp_install(prompt = FALSE)
 ```
 
 #### talkrpp_initialize(): activate the environment
@@ -94,7 +83,7 @@ environments, plus any virtualenvs) — handy for seeing which name to pass as
 
 ```{r list-envs, eval = evaluate}
 list_talkrpp_envs()
-#> [1] "base" "talkrpp_condaenv" "talkrpp_diarize_condaenv" ...
+#> [1] "base" "talkrpp_condaenv" ...
 ```
 
 ### Transcription and embeddings
