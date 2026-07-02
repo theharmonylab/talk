@@ -61,6 +61,22 @@ jobs:
 
       - uses: r-lib/actions/setup-pandoc@v2-branch
 
+      # ffmpeg binary — required by the diarisation pipeline. Installed via the
+      # system package manager (NOT conda, which drags in a newer libav* stack
+      # that torchaudio cannot use -> "Failed to load audio").
+      - name: Install ffmpeg (macOS)
+        if: runner.os == 'macOS'
+        run: brew install ffmpeg
+
+      - name: Install ffmpeg (Linux)
+        if: runner.os == 'Linux'
+        run: sudo apt-get update -y && sudo apt-get install -y ffmpeg
+
+      - name: Install ffmpeg (Windows)
+        if: runner.os == 'Windows'
+        run: choco install ffmpeg -y
+        shell: pwsh
+
       # Install Miniconda (all OS)
       - uses: conda-incubator/setup-miniconda@v3
         with:

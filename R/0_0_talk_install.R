@@ -182,6 +182,12 @@ process_talkrpp_diarize_installation <- function(conda,
     reticulate::conda_create(envname, packages = c(python_packages, "pip"), conda = conda)
   }
 
+  # NOTE: the diarisation pipeline requires the `ffmpeg` binary on PATH. Do NOT
+  # install ffmpeg into this conda environment: conda's ffmpeg pulls a newer
+  # libav* stack that torchaudio links against and cannot use ("Failed to load
+  # audio"). Install ffmpeg via the system package manager instead (see README /
+  # CI workflows).
+
   # Step 1: torch — CUDA index URL on Linux/Windows, plain PyPI on macOS
   torch_packages <- c("torch==2.11.0", "torchaudio==2.11.0")
   torch_pip_options <- if (is_linux() || is_windows()) {
