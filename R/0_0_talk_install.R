@@ -79,10 +79,12 @@ talkrpp_install <- function(
     )
   }
 
-  # install rust for singularity machine -- but it gives error in github action
-  # reticulate::py_run_string("import os\nos.system(\"curl --proto '=https' --tlsv1.2 -sSf
-  # https://sh.rustup.rs | sh -s -- -y\")")
-  system("curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y")
+  # System dependencies (same approach as the text package): report missing
+  # tools (e.g. ffmpeg, required for diarisation) with copy-paste install
+  # instructions, and install Rust only if it is actually missing (used to
+  # build Python packages such as tokenizers when no prebuilt wheel exists).
+  check_talk_system_dependencies(verbose = prompt)
+  install_rust_if_needed(prompt = prompt)
 
   # resolve and look for conda help(conda_binary)
   conda <- tryCatch(reticulate::conda_binary(conda), error = function(e) NULL)
@@ -159,6 +161,198 @@ talkrpp_install <- function(
     "Great work - do not forget to initialize the environment \nwith talkrpp_initialize().\n",
     fg = "green", bg = NULL
   ))
+  invisible(NULL)
+}
+
+# Make ffmpeg findable when it is installed but not on the R session's PATH
+# (e.g. RStudio launched from the macOS Dock does not always include
+# /opt/homebrew/bin). Prepends the containing directory to PATH if found.
+ensure_ffmpeg_on_path <- function() {
+  if (nzchar(Sys.which("ffmpeg"))) return(invisible(TRUE))
+  if (.Platform$OS.type == "unix") {
+    candidates <- c("/opt/homebrew/bin", "/usr/local/bin", "/usr/bin")
+    hit <- candidates[file.exists(file.path(candidates, "ffmpeg"))]
+    if (length(hit) > 0) {
+      Sys.setenv(PATH = paste(hit[1], Sys.getenv("PATH"), sep = ":"))
+    }
+  }
+  invisible(nzchar(Sys.which("ffmpeg")))
+}
+
+# One-line, copy-paste install instruction for ffmpeg on the current OS.
+ffmpeg_install_instruction <- function() {
+  switch(Sys.info()[["sysname"]],
+    Darwin  = "brew install ffmpeg",
+    Linux   = "sudo apt-get install ffmpeg   (or your distribution's package manager)",
+    Windows = "choco install ffmpeg   (or download from https://ffmpeg.org and add it to PATH)",
+    "see https://ffmpeg.org"
+  )
+}
+
+# Check the system tools talk needs, mirroring the text package's
+# check_*_githubaction_dependencies(): print a human-readable summary with
+# copy-paste install commands, warn when something required is missing, and
+# return a structured result invisibly.
+check_talk_system_dependencies <- function(verbose = TRUE) {
+  os <- Sys.info()[["sysname"]]
+  summary_lines <- c("== talk system dependencies ==")
+  missing <- character(0)
+
+  # ffmpeg -- required by talkTranscribeDiarise()/talkEmbedSegments():
+  # whisper loads audio through the ffmpeg binary.
+  ensure_ffmpeg_on_path()
+  ffmpeg_ok <- nzchar(Sys.which("ffmpeg"))
+  if (ffmpeg_ok) {
+    summary_lines <- c(summary_lines, "'ffmpeg' is installed.")
+  } else {
+    missing <- c(missing, "ffmpeg")
+    summary_lines <- c(
+      summary_lines,
+      "'ffmpeg' is NOT installed. It is required for talkTranscribeDiarise() and talkEmbedSegments().",
+      "To install it, run:",
+      paste0("  ", ffmpeg_install_instruction()),
+      "Note: do NOT install ffmpeg with conda -- conda's ffmpeg breaks torchaudio's audio loading."
+    )
+  }
+
+  # Homebrew on macOS (the recommended way to install ffmpeg).
+  if (os == "Darwin" && !nzchar(Sys.which("brew"))) {
+    summary_lines <- c(
+      summary_lines,
+      "'homebrew' is NOT installed (recommended, to install ffmpeg).",
+      "To install it, open your Terminal and run:",
+      '  /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+    )
+  }
+
+  # Debian/Ubuntu development libraries needed to build talk's R dependencies
+  # from source (e.g. when installing talk from GitHub via remotes/devtools).
+  # Deliberately minimal: the longer apt list in the CI workflows (cairo,
+  # harfbuzz, freetype, java, ...) belongs to the CI's development toolchain
+  # (pkgdown, ragg, covr), not to talk itself.
+  if (os == "Linux" && nzchar(Sys.which("dpkg"))) {
+    linux_required <- c("libcurl4-openssl-dev", "libssl-dev", "libxml2-dev")
+    linux_status <- vapply(linux_required, function(lib) {
+      suppressWarnings(
+        system2("dpkg", c("-s", lib), stdout = FALSE, stderr = FALSE)
+      ) == 0
+    }, logical(1))
+    if (all(linux_status)) {
+      summary_lines <- c(
+        summary_lines,
+        paste0("Development libraries are installed (",
+               paste(linux_required, collapse = ", "), ").")
+      )
+    } else {
+      linux_missing <- linux_required[!linux_status]
+      missing <- c(missing, linux_missing)
+      summary_lines <- c(
+        summary_lines,
+        "Missing development libraries (needed to install talk's R dependencies from source):",
+        paste0("  - ", linux_missing),
+        "To install them, run:",
+        paste0("  sudo apt-get install -y ", paste(linux_missing, collapse = " "))
+      )
+    }
+  }
+
+  if (length(missing) > 0) {
+    warning(
+      "Missing system dependencies used by talk: ", paste(missing, collapse = ", "),
+      ". See the message above for install instructions.",
+      call. = FALSE
+    )
+  }
+  if (verbose) message(paste(summary_lines, collapse = "\n"))
+
+  invisible(list(
+    os = os,
+    ffmpeg = ffmpeg_ok,
+    missing = missing,
+    summary_lines = summary_lines
+  ))
+}
+
+# Install Rust only when it is actually missing (needed to build Python
+# packages such as tokenizers when no prebuilt wheel exists). Adapted from the
+# text package's install_rust_if_needed(): checks first, asks the user, uses
+# the proper installer per OS, and updates PATH for the current session.
+install_rust_if_needed <- function(prompt = TRUE) {
+  is_installed <- function(cmd) nzchar(Sys.which(cmd))
+
+  # rustc may live in ~/.cargo/bin without being on the session PATH
+  cargo_bin <- path.expand(
+    if (.Platform$OS.type == "windows") {
+      file.path(Sys.getenv("USERPROFILE"), ".cargo", "bin")
+    } else {
+      "~/.cargo/bin"
+    }
+  )
+  if (!is_installed("rustc") && dir.exists(cargo_bin)) {
+    Sys.setenv(PATH = paste(cargo_bin, Sys.getenv("PATH"), sep = .Platform$path.sep))
+  }
+
+  if (is_installed("rustc")) {
+    message("Rust is already installed. Skipping Rust installation.")
+    return(invisible(NULL))
+  }
+
+  message("Rust is not installed on this system.")
+
+  if (.Platform$OS.type != "windows" && !is_installed("curl")) {
+    warning("Rust installation aborted: 'curl' not found.\n",
+            "Please install Rust manually: https://www.rust-lang.org/",
+            call. = FALSE)
+    return(invisible(NULL))
+  }
+
+  ans <- if (prompt) utils::menu(c("No", "Yes"), title = "Do you want to install Rust?") else 2
+  if (ans == 1) {
+    message("Rust installation cancelled by user.")
+    return(invisible(NULL))
+  }
+
+  tryCatch({
+    if (.Platform$OS.type == "windows") {
+      message("Downloading Rust installer for Windows...")
+      installer <- file.path(Sys.getenv("USERPROFILE"), "rustup-init.exe")
+      utils::download.file(
+        "https://static.rust-lang.org/rustup/dist/x86_64-pc-windows-msvc/rustup-init.exe",
+        installer, mode = "wb"
+      )
+      message("Running Rust installer (non-interactive)...")
+      status <- shell(sprintf(
+        'cmd.exe /c ""%s" -y --profile minimal --default-host x86_64-pc-windows-msvc"',
+        installer
+      ), wait = TRUE)
+      if (!identical(status, 0L)) stop("rustup-init exited with status ", status)
+    } else {
+      message("Downloading and installing Rust for macOS/Linux...")
+      system(paste(
+        "curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs |",
+        "sh -s -- -y --profile minimal --no-modify-path"
+      ))
+    }
+
+    if (dir.exists(cargo_bin)) {
+      Sys.setenv(PATH = paste(cargo_bin, Sys.getenv("PATH"), sep = .Platform$path.sep))
+    }
+
+    if (is_installed("rustc")) {
+      message("Rust installation completed successfully.")
+      message("If RStudio still can't find rustc/cargo, restart RStudio so PATH updates.")
+    } else {
+      warning("Rust installation attempted, but 'rustc' was not found on PATH.\n",
+              "Try restarting R/RStudio or install Rust manually:\n",
+              "  https://www.rust-lang.org/tools/install",
+              call. = FALSE)
+    }
+  }, error = function(e) {
+    warning("Rust installation failed: ", conditionMessage(e),
+            "\nPlease install Rust manually from https://www.rust-lang.org/",
+            call. = FALSE)
+  })
+
   invisible(NULL)
 }
 

@@ -72,6 +72,21 @@ talkTranscribeDiarise <- function(
 
   diarize_py <- system.file("python", "diarize.py", package = "talk", mustWork = TRUE)
 
+  # Fail fast with clear instructions if the ffmpeg binary is missing: whisper
+  # loads audio through it, and diarisation would otherwise die later with a
+  # cryptic "[Errno 2] No such file or directory: 'ffmpeg'".
+  # ensure_ffmpeg_on_path() first fixes the common case where ffmpeg is
+  # installed but not on the R session's PATH (e.g. RStudio from the Dock).
+  ensure_ffmpeg_on_path()
+  if (!nzchar(Sys.which("ffmpeg"))) {
+    stop(
+      "talkTranscribeDiarise() requires the 'ffmpeg' system binary, which was not found.\n",
+      "Install it with: ", ffmpeg_install_instruction(), "\n",
+      "Note: do NOT install ffmpeg with conda -- conda's ffmpeg breaks torchaudio's audio loading.",
+      call. = FALSE
+    )
+  }
+
   callr::r(
     func = function(audio, output_dir, model_name, language, device,
                     stemming, suppress_numerals, batch_size, num_speakers,
