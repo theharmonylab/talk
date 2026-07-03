@@ -29,7 +29,10 @@
 #'   only if WhiSPA is not pip-installed.
 #' @param output_dir (string) Optional directory to also write embedding CSV(s).
 #' @param device (string) \code{"cpu"}, \code{"cuda"}, or \code{"mps"}. If NULL,
-#'   chooses \code{"cuda"} when available, else \code{"cpu"}.
+#'   chooses \code{"cuda"} when available, then \code{"mps"} on real Apple
+#'   hardware, else \code{"cpu"}. On virtualized macOS (VMs/CI runners) MPS can
+#'   silently produce invalid embeddings, so it is never auto-selected there
+#'   (and explicitly requesting it triggers a warning).
 #' @param condaenv (string) Name of the conda environment that holds the talk
 #'   stack (including whisnemo[embed] and WhiSPA). Default
 #'   \code{"talkrpp_condaenv"}, the single environment installed by
@@ -71,6 +74,26 @@ talkEmbedSegments <- function(
 
   embed_py <- system.file("python", "embed.py", package = "talk", mustWork = TRUE)
 
+  # On VIRTUALIZED macOS (CI runners, macOS VMs) torch reports MPS as
+  # available, but Metal computes invalid results (e.g. near-constant
+  # embeddings across segments) without any error. Detect virtualization
+  # (kern.hv_vmm_present is 1 inside a VM) so MPS is only auto-selected on
+  # real Apple hardware, and warn if the user explicitly requests it in a VM.
+  macos_vm <- FALSE
+  if (Sys.info()[["sysname"]] == "Darwin") {
+    macos_vm <- tryCatch(
+      identical(suppressWarnings(
+        system("sysctl -n kern.hv_vmm_present", intern = TRUE, ignore.stderr = TRUE)
+      ), "1"),
+      error = function(e) FALSE
+    )
+    if (macos_vm && identical(device, "mps")) {
+      warning("device = 'mps' on virtualized macOS (VM/CI runner) can silently ",
+              "produce invalid embeddings; use device = 'cpu' instead.",
+              call. = FALSE)
+    }
+  }
+
   # Run in a subprocess bound to the diarize/embed conda environment, mirroring
   # talkTranscribeDiarise(). This is required because the embed stack (whisnemo,
   # WhiSPA) is installed into `condaenv`, not the main session's Python, and
@@ -78,7 +101,7 @@ talkEmbedSegments <- function(
   result <- callr::r(
     func = function(audio, transcript, model, embeddings, participant_only,
                     whisper_model_id, whispa_model_id, whispa_repo_path,
-                    output_dir, device, condaenv, embed_py) {
+                    output_dir, device, condaenv, embed_py, macos_vm) {
 
       Sys.setenv(KMP_DUPLICATE_LIB_OK = "TRUE")
       Sys.setenv(OMP_NUM_THREADS      = "1")
@@ -94,7 +117,13 @@ talkEmbedSegments <- function(
           if (torch$cuda$is_available()) {
             device <- "cuda"
           } else if (torch$backends$mps$is_available()) {
-            device <- "mps"
+            if (macos_vm) {
+              cat("MPS is reported available, but this macOS session is",
+                  "virtualized (VM/CI runner), where Metal can silently produce",
+                  "invalid embeddings; using CPU instead.\n")
+            } else {
+              device <- "mps"
+            }
           }
         }
       }
@@ -124,7 +153,8 @@ talkEmbedSegments <- function(
       output_dir = output_dir,
       device = device,
       condaenv = condaenv,
-      embed_py = embed_py
+      embed_py = embed_py,
+      macos_vm = macos_vm
     ),
     show = TRUE
   )

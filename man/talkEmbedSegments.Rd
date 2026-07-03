@@ -47,7 +47,10 @@ only if WhiSPA is not pip-installed.}
 \item{output_dir}{(string) Optional directory to also write embedding CSV(s).}
 
 \item{device}{(string) \code{"cpu"}, \code{"cuda"}, or \code{"mps"}. If NULL,
-chooses \code{"cuda"} when available, else \code{"cpu"}.}
+chooses \code{"cuda"} when available, then \code{"mps"} on real Apple
+hardware, else \code{"cpu"}. On virtualized macOS (VMs/CI runners) MPS can
+silently produce invalid embeddings, so it is never auto-selected there
+(and explicitly requesting it triggers a warning).}
 
 \item{condaenv}{(string) Name of the conda environment that holds the talk
 stack (including whisnemo[embed] and WhiSPA). Default \code{"talkrpp_condaenv"},

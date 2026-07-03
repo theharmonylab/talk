@@ -25,6 +25,9 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
   # Whisper encoder embeddings, one row per diarised segment.
   # participant_only = FALSE because the diarised transcript has no
   # "speaker_role" column (which the participant_only = TRUE path requires).
+  # device = "cpu" for deterministic values: on virtualized macOS CI runners
+  # torch reports MPS as available, but Metal computes garbage (near-constant
+  # embeddings across segments). CPU matches MPS on real Apple hardware.
   emb <- talk::talkEmbedSegments(
     audio            = wav_path,
     transcript       = diar$transcript,
@@ -32,6 +35,7 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
     embeddings       = "encoder",
     participant_only = FALSE,
     whisper_model_id = "openai/whisper-tiny",
+    device           = "cpu",
     condaenv         = envname
   )
 
@@ -55,6 +59,7 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
     embeddings       = "both",
     participant_only = FALSE,
     whisper_model_id = "openai/whisper-tiny",
+    device           = "cpu",
     condaenv         = envname
   )
 
