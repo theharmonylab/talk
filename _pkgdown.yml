@@ -19,9 +19,34 @@ template:
 development:
   mode: default
 
+navbar:
+  structure:
+    left:  [installation, tutorial, reference, news]
+    right: [search, github, lightswitch]
+
+  components:
+    installation:
+      text: Installation
+      href: installation.html
+    tutorial:
+      text: Getting started
+      href: articles/talk.html
+    reference:
+      text: Reference API
+      href: reference/index.html
+    news:
+      text: News
+      href: news/index.html
+
 home:
   title: talk
   description: Analyses of talk in audio recordings using transformers models such as Whisper from HuggingFace.
+  sidebar:
+    structure: [workshop, links, license, community, citation, authors, dev]
+    components:
+      workshop:
+        title: Workshop
+        text: "📣 [**Aug 11–13, 2026:** Analysing Human Language using R](https://smart-workshops.com/lang-r-info)"
   links:
     - text: Ask a question about talk using the r-talk tag
       href: https://stackoverflow.com/
@@ -29,6 +54,8 @@ home:
 authors:
   Oscar Kjell:
     href: https://oscarkjell.se/
+  Dhairya Umrania:
+    href: https://github.com/DhairyaUmrania
   Rajath Rao:
     href: https://github.com/Jarhatz
 
@@ -52,3 +79,4 @@ reference:
 news:
   one_page: true
   cran_dates: true
+

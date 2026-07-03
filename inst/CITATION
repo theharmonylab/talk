@@ -1,10 +1,16 @@
-citHeader("To cite text in publications use:")
+citHeader("To cite the talk-package in publications use:")
 
 bibentry(
-   bibtype = "Article",
-   title = "The talk-package",
-   author = as.person("Oscar Kjell [aut], Salvatore Giorgi [aut], H. Andrew Schwartz [aut]"),
-   journal = "Psychological Methods",
-   doi = "10.1037/met0000542",
-   year = 2023,
-   url = "https://osf.io/preprints/psyarxiv/293kt/")
+  bibtype = "Manual",
+  title   = "talk: Analyses of audio recordings of speech using transformer models",
+  author  = c(
+    person("Oscar", "Kjell"),
+    person("Dhairya", "Umrania"),
+    person("Adithya", "Ganesan"),
+    person("Rajath", "Rao"),
+    person("Akshay", "Raghavan")
+  ),
+  year    = 2026,
+  note    = paste("R package version", meta$Version),
+  url     = "https://www.r-talk.org"
+)

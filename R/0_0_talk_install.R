@@ -79,10 +79,12 @@ talkrpp_install <- function(
     )
   }
 
-  # System dependencies (same approach as the text package): report missing
-  # tools (e.g. ffmpeg, required for diarisation) with copy-paste install
-  # instructions, and install Rust only if it is actually missing (used to
-  # build Python packages such as tokenizers when no prebuilt wheel exists).
+  # System dependencies (same approach as the text package): auto-install
+  # what can be installed (Debian/Ubuntu dev libraries, when root/sudo is
+  # available), report the rest with copy-paste install instructions, and
+  # install Rust only if it is actually missing (used to build Python
+  # packages such as tokenizers when no prebuilt wheel exists).
+  install_linux_dev_libs_if_needed(prompt = prompt)
   check_talk_system_dependencies(verbose = prompt)
   install_rust_if_needed(prompt = prompt)
 
@@ -148,6 +150,9 @@ talkrpp_install <- function(
     process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
   }
 
+  # If no system ffmpeg was found, activate the static fallback installed above.
+  ensure_ffmpeg_on_path(envname)
+
   message(colourise(
     "\nInstallation is completed.\n",
     fg = "blue", bg = NULL
@@ -164,18 +169,62 @@ talkrpp_install <- function(
   invisible(NULL)
 }
 
-# Make ffmpeg findable when it is installed but not on the R session's PATH
-# (e.g. RStudio launched from the macOS Dock does not always include
-# /opt/homebrew/bin). Prepends the containing directory to PATH if found.
-ensure_ffmpeg_on_path <- function() {
+# Make ffmpeg findable, in order of preference:
+#   1. already on PATH;
+#   2. installed but not on the R session's PATH (e.g. RStudio launched from
+#      the macOS Dock does not always include /opt/homebrew/bin);
+#   3. talk's own fallback: the static ffmpeg binary shipped by the
+#      imageio-ffmpeg package in the talk conda environment (installed by
+#      talkrpp_install()), copied once into a talk-managed bin directory.
+# Unlike conda's ffmpeg, the static binary adds no libav* libraries to the
+# environment, so torchaudio is unaffected. Prepends the containing directory
+# to PATH (inherited by the diarise/embed subprocesses) and returns TRUE when
+# ffmpeg is available.
+ensure_ffmpeg_on_path <- function(condaenv = NULL) {
   if (nzchar(Sys.which("ffmpeg"))) return(invisible(TRUE))
+
+  # 2) common install locations missing from the session PATH
   if (.Platform$OS.type == "unix") {
     candidates <- c("/opt/homebrew/bin", "/usr/local/bin", "/usr/bin")
     hit <- candidates[file.exists(file.path(candidates, "ffmpeg"))]
     if (length(hit) > 0) {
       Sys.setenv(PATH = paste(hit[1], Sys.getenv("PATH"), sep = ":"))
+      return(invisible(TRUE))
     }
   }
+
+  # 3) talk's fallback shim (created below on a previous call)
+  shim_dir <- file.path(tools::R_user_dir("talk", "cache"), "bin")
+  shim <- file.path(shim_dir,
+                    if (.Platform$OS.type == "windows") "ffmpeg.exe" else "ffmpeg")
+  if (!file.exists(shim) && !is.null(condaenv)) {
+    # resolve the static binary shipped by imageio-ffmpeg in the conda env
+    py <- tryCatch(reticulate::conda_python(condaenv), error = function(e) NULL)
+    if (!is.null(py) && file.exists(py)) {
+      exe <- tryCatch(
+        suppressWarnings(system2(
+          py, c("-c", shQuote("import imageio_ffmpeg; print(imageio_ffmpeg.get_ffmpeg_exe())")),
+          stdout = TRUE, stderr = FALSE
+        )),
+        error = function(e) character(0)
+      )
+      exe <- utils::tail(exe[nzchar(exe)], 1)
+      if (length(exe) == 1 && file.exists(exe)) {
+        dir.create(shim_dir, recursive = TRUE, showWarnings = FALSE)
+        if (file.copy(exe, shim, overwrite = TRUE) &&
+            .Platform$OS.type == "unix") {
+          Sys.chmod(shim, "0755")
+        }
+      }
+    }
+  }
+  if (file.exists(shim)) {
+    Sys.setenv(PATH = paste(shim_dir, Sys.getenv("PATH"),
+                            sep = .Platform$path.sep))
+    message("No system ffmpeg found; using the static ffmpeg bundled with the talk environment.")
+    return(invisible(TRUE))
+  }
+
   invisible(nzchar(Sys.which("ffmpeg")))
 }
 
@@ -193,6 +242,97 @@ ffmpeg_install_instruction <- function() {
 # check_*_githubaction_dependencies(): print a human-readable summary with
 # copy-paste install commands, warn when something required is missing, and
 # return a structured result invisibly.
+# Debian/Ubuntu development libraries needed to build talk's R dependencies
+# from source. Returns the missing ones (character(0) when none, or when not
+# on a dpkg-based system).
+linux_missing_dev_libs <- function() {
+  if (Sys.info()[["sysname"]] != "Linux" || !nzchar(Sys.which("dpkg"))) {
+    return(character(0))
+  }
+  required <- c("libcurl4-openssl-dev", "libssl-dev", "libxml2-dev")
+  ok <- vapply(required, function(lib) {
+    suppressWarnings(
+      system2("dpkg", c("-s", lib), stdout = FALSE, stderr = FALSE)
+    ) == 0
+  }, logical(1))
+  required[!ok]
+}
+
+# Best-effort automatic installation of missing Debian/Ubuntu development
+# libraries. Installing system packages needs root, so this works when:
+#   - R runs as root (e.g. docker containers): apt-get directly;
+#   - sudo works without a password (e.g. CI runners, many servers);
+#   - R runs in a terminal, where sudo can prompt for the password.
+# In RStudio there is no terminal for a sudo password prompt, so the function
+# falls back to printing the install instructions instead of attempting.
+install_linux_dev_libs_if_needed <- function(prompt = TRUE) {
+  missing <- linux_missing_dev_libs()
+  if (length(missing) == 0 || !nzchar(Sys.which("apt-get"))) {
+    return(invisible(NULL))
+  }
+
+  is_root <- identical(unname(Sys.info()[["user"]]), "root")
+  has_sudo <- nzchar(Sys.which("sudo"))
+  sudo_passwordless <- has_sudo && suppressWarnings(
+    system2("sudo", c("-n", "true"), stdout = FALSE, stderr = FALSE)
+  ) == 0
+  # sudo can only ask for a password when stdin is a terminal (not in RStudio)
+  sudo_can_prompt <- has_sudo && isatty(stdin())
+
+  can_attempt <- is_root || sudo_passwordless || sudo_can_prompt
+  if (!can_attempt) {
+    message(
+      "Missing development libraries: ", paste(missing, collapse = ", "), "\n",
+      "They cannot be installed from this R session (no root/sudo terminal).\n",
+      "Please run in a terminal:\n",
+      "  sudo apt-get install -y ", paste(missing, collapse = " ")
+    )
+    return(invisible(NULL))
+  }
+
+  if (prompt) {
+    ans <- utils::menu(
+      c("No", "Yes"),
+      title = paste0("Missing development libraries: ",
+                     paste(missing, collapse = ", "),
+                     ". Install them now with apt-get",
+                     if (!is_root) " (sudo)", "?")
+    )
+    if (ans != 2) {
+      message("Skipped. To install them later, run:\n",
+              "  sudo apt-get install -y ", paste(missing, collapse = " "))
+      return(invisible(NULL))
+    }
+  } else if (!is_root && !sudo_passwordless) {
+    # non-interactive run must not hang on a sudo password prompt
+    message(
+      "Missing development libraries: ", paste(missing, collapse = ", "), "\n",
+      "To install them, run:\n",
+      "  sudo apt-get install -y ", paste(missing, collapse = " ")
+    )
+    return(invisible(NULL))
+  }
+
+  cmd  <- if (is_root) "apt-get" else "sudo"
+  args <- if (is_root) character(0) else "apt-get"
+  message("Installing: ", paste(missing, collapse = ", "), " ...")
+  suppressWarnings({
+    system2(cmd, c(args, "update"))
+    system2(cmd, c(args, "install", "-y", missing))
+  })
+
+  still_missing <- linux_missing_dev_libs()
+  if (length(still_missing) == 0) {
+    message("Development libraries installed successfully.")
+  } else {
+    warning("Could not install: ", paste(still_missing, collapse = ", "),
+            ". Please install them manually:\n",
+            "  sudo apt-get install -y ", paste(still_missing, collapse = " "),
+            call. = FALSE)
+  }
+  invisible(NULL)
+}
+
 check_talk_system_dependencies <- function(verbose = TRUE) {
   os <- Sys.info()[["sysname"]]
   summary_lines <- c("== talk system dependencies ==")
@@ -208,8 +348,9 @@ check_talk_system_dependencies <- function(verbose = TRUE) {
     missing <- c(missing, "ffmpeg")
     summary_lines <- c(
       summary_lines,
-      "'ffmpeg' is NOT installed. It is required for talkTranscribeDiarise() and talkEmbedSegments().",
-      "To install it, run:",
+      "'ffmpeg' is NOT installed (used by talkTranscribeDiarise() and talkEmbedSegments()).",
+      "talkrpp_install() installs a static ffmpeg fallback automatically, so no action is",
+      "strictly required. To install a system ffmpeg (recommended), run:",
       paste0("  ", ffmpeg_install_instruction()),
       "Note: do NOT install ffmpeg with conda -- conda's ffmpeg breaks torchaudio's audio loading."
     )
@@ -231,20 +372,13 @@ check_talk_system_dependencies <- function(verbose = TRUE) {
   # harfbuzz, freetype, java, ...) belongs to the CI's development toolchain
   # (pkgdown, ragg, covr), not to talk itself.
   if (os == "Linux" && nzchar(Sys.which("dpkg"))) {
-    linux_required <- c("libcurl4-openssl-dev", "libssl-dev", "libxml2-dev")
-    linux_status <- vapply(linux_required, function(lib) {
-      suppressWarnings(
-        system2("dpkg", c("-s", lib), stdout = FALSE, stderr = FALSE)
-      ) == 0
-    }, logical(1))
-    if (all(linux_status)) {
+    linux_missing <- linux_missing_dev_libs()
+    if (length(linux_missing) == 0) {
       summary_lines <- c(
         summary_lines,
-        paste0("Development libraries are installed (",
-               paste(linux_required, collapse = ", "), ").")
+        "Development libraries are installed (libcurl4-openssl-dev, libssl-dev, libxml2-dev)."
       )
     } else {
-      linux_missing <- linux_required[!linux_status]
       missing <- c(missing, linux_missing)
       summary_lines <- c(
         summary_lines,
@@ -425,6 +559,13 @@ process_talkrpp_diarize_installation <- function(conda,
                                             "--force-reinstall", "--no-deps"))
   reticulate::conda_install(envname, whispa_package, pip = TRUE, conda = conda,
                             pip_options = c("-c", whisnemo_constraints))
+
+  # Step 4: static ffmpeg fallback. If the user has no system ffmpeg, talk
+  # falls back to the static binary shipped by the imageio-ffmpeg package.
+  # Unlike conda's ffmpeg, this is a single executable that adds no libav*
+  # libraries to the environment, so torchaudio is unaffected.
+  message("Installing imageio-ffmpeg (static ffmpeg fallback)...\n")
+  reticulate::conda_install(envname, "imageio-ffmpeg", pip = TRUE, conda = conda)
 }
 
 

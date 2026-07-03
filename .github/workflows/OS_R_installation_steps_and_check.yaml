@@ -45,9 +45,13 @@ jobs:
         if: runner.os == 'macOS'
         run: brew install ffmpeg
 
-      - name: Install ffmpeg (Linux)
+      # Ubuntu deliberately gets NO system ffmpeg (any preinstalled one is
+      # removed) so CI exercises talk's automatic static-ffmpeg fallback
+      # (imageio-ffmpeg) end-to-end. macOS and Windows test the system-ffmpeg
+      # path.
+      - name: Remove system ffmpeg (Linux) to test talk's automatic fallback
         if: runner.os == 'Linux'
-        run: sudo apt-get update -y && sudo apt-get install -y ffmpeg
+        run: sudo apt-get remove -y ffmpeg || true
 
       - name: Install ffmpeg (Windows)
         if: runner.os == 'Windows'
@@ -146,12 +150,18 @@ jobs:
           wav <- system.file("extdata", "test_diarise.wav", package = "talk")
           diar <- talk::talkTranscribeDiarise(audio = wav, model_name = "tiny.en")
           cat("diarise status:", diar$status, "\n")
+          cat("ffmpeg used:", Sys.which("ffmpeg"), "\n")
           if (!identical(diar$status, "success")) {
             cat("diarise error:", if (!is.null(diar$error)) diar$error else "(no error field)", "\n")
           }
           stopifnot(identical(diar$status, "success"),
                     is.data.frame(diar$transcript),
                     nrow(diar$transcript) > 0)
+          # Linux runs without a system ffmpeg: assert the static fallback
+          # (copied to tools::R_user_dir("talk", "cache")/bin) was used.
+          if (Sys.info()[["sysname"]] == "Linux") {
+            stopifnot(grepl("talk", Sys.which("ffmpeg"), fixed = TRUE))
+          }
           emb <- talk::talkEmbedSegments(audio = wav,
                                          transcript = diar$transcript,
                                          model = "whisper",

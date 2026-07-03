@@ -3,17 +3,16 @@ Type: Package
 Title: Analyses of audio recordings using transformers models
 Version: 0.50
 Authors@R: c(
-    person("Oscar", "Kjell", , "oscar.kjell@psy.lu.se", role = c("aut", "cre"), 
+    person("Oscar", "Kjell", , "oscar.kjell@psy.lu.se", role = c("aut", "cre"),
       comment = c(ORCID = "0000-0002-2728-6278"),
     ),
-    person("Adithya", "Ganesan", role = c("aut"), 
-      comment = c(ORCID = "0000-0000-0000-0000")
+    person("Dhairya", "Umrania", role = c("aut")
     ),
-    person("Rajath", "Rao", role = c("aut"), 
-      comment = c(ORCID = "0000-0000-0000-0000")
+    person("Adithya", "Ganesan", role = c("aut")
     ),
-    person("Akshay", "Raghavan", role = c("aut"), 
-      comment = c(ORCID = "0000-0000-0000-0000")
+    person("Rajath", "Rao", role = c("aut")
+    ),
+    person("Akshay", "Raghavan", role = c("aut")
     )
     )
 Description: Link R with Transformers from Hugging Face to transform audio recordings to text or audio embeddings. For more information see  <https://www.r-talk.org>.

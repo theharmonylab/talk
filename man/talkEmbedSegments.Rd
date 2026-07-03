@@ -53,8 +53,9 @@ silently produce invalid embeddings, so it is never auto-selected there
 (and explicitly requesting it triggers a warning).}
 
 \item{condaenv}{(string) Name of the conda environment that holds the talk
-stack (including whisnemo[embed] and WhiSPA). Default \code{"talkrpp_condaenv"},
-the single environment installed by \code{talkrpp_install()}.}
+stack (including whisnemo[embed] and WhiSPA). Default
+\code{"talkrpp_condaenv"}, the single environment installed by
+\code{talkrpp_install()}.}
 }
 \value{
 A tibble of segment-level embeddings (one row per segment), or, for

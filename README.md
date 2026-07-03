@@ -40,81 +40,42 @@ between psychology and computer science to address research needs and
 ensure state-of-the-art techniques. The suite is continuously tested on
 Ubuntu, Mac OS and Windows using the latest stable R version.
 
-### Short installation guide
-
-Most users simply need to run below installation code. For those
-experiencing problems, please see the [Extended Installation
-Guide](https://www.r-talk.org/articles/huggingface_in_r_extended_installation_guide.html).
-
-For the talk-package to work, you first have to install the talk-package
-in R, and then make it work with talk required python packages.
-
-1.  Install talk-version (at the moment the second step only works using
-    the development version of talk from GitHub).
-
-[GitHub](https://github.com/) development version:
-
-``` r
-# install.packages("devtools")
-devtools::install_github("theharmonylab/talk")
-```
-
-<!--
-[CRAN](https://CRAN.R-project.org/package=talk) version:
-&#10;``` r
-install.packages("talk")
-```
--->
-
-2.  Install and initialize talk required python packages:
-
-``` r
-library(talk)
-
-# Install talk required python packages in a conda environment (with defaults).
-talkrpp_install()
-
-# Initialize the installed conda environment.
-# save_profile = TRUE saves the settings so that you don't have to run talkrpp_initialize() after restarting R. 
-talkrpp_initialize(save_profile = TRUE)
-```
+> ### 📣 Online Workshop: *Analysing Human Language using R*
+>
+> **August 11–13, 2026** — three half-day sessions (2:00–5:00 pm CEST /
+> 8:00–11:00 am ET)
+>
+> Learn the full *R Language Analysis Suite* —
+> [`talk`](https://www.r-talk.org/), [`text`](https://www.r-text.org/),
+> and [`topics`](https://www.r-topics.org/) — with Oscar Kjell.
+>
+> **[Read more & register →](https://smart-workshops.com/lang-r-info)**
 
 ### Point solution for transforming talk to embeddings
 
-Recent significant advances in NLP research have resulted in improved
-representations of human language (i.e., language models). These
-language models have produced big performance gains in tasks related to
-understanding human language. talk are making these SOTA models easily
-accessible through an interface to
-[HuggingFace](https://huggingface.co/docs/transformers/index) in Python.
+Recent advances in speech and language modelling have dramatically
+improved how well computers can transcribe and represent human speech.
+The talk-package makes these state-of-the-art models — such as Whisper
+from [HuggingFace](https://huggingface.co/docs/transformers/index) —
+easily accessible from R. All analyses run locally on your own computer,
+so recordings never leave your machine — important when working with
+sensitive data such as clinical or research interviews.
 
-See [HuggingFace](https://huggingface.co/models/) for a more
-comprehensive list of models.
+With talk you can:
 
-The `talkText()` function performs speech-to-text, transcribing audio
-input to text. `talkEmbed()`, transforms audio input to numeric
-representations (embeddings) that can be used for downstream tasks such
-as guideline predictive models using the text-package (see the text
-train functions).
+- **Transcribe speech to text**: turn audio recordings into text, in
+  many languages.
+- **Identify who says what and when**: split a conversation by speaker,
+  with time-stamped speaker turns (diarisation).
+- **Transform speech into embeddings**: represent whole recordings — or
+  each speaker turn — as numeric vectors that capture acoustic and
+  psychologically relevant properties of the voice, beyond the words
+  themselves.
+- **Use the embeddings in downstream analyses**: for example, training
+  models to predict psychological constructs with the
+  [text](https://www.r-text.org/)-package.
 
-``` r
-library(talk)
-# Transform the talk data to BERT word embeddings
-
-# Get file path to example audio from the package example data
-wav_path <- system.file("extdata/",
-                            "test_short.wav",
-                            package = "talk")
-
-# Get transcription 
-talk_embeddings <- talkText(
-  wav_path
-)
-talk_embeddings
-
-# Defaults
-talk_embeddings <- talkEmbed(
-  wav_path
-)
-talk_embeddings
-```
+See the [Getting started
+tutorial](https://www.r-talk.org/articles/talk.html) for a walk-through
+of the workflow, and [HuggingFace](https://huggingface.co/models/) for
+the available models.
