@@ -10,10 +10,14 @@
 [![Github build
 status](https://github.com/theharmonylab/talk/workflows/R-CMD-check/badge.svg)](https://github.com/theharmonylab/talk/actions)
 [![codecov](https://codecov.io/gh/theharmonylab/talk/branch/main/graph/badge.svg?)](https://app.codecov.io/gh/theharmonylab/talk)
+[![Project Status: Active – The project has reached a stable, usable
+state and is being actively
+developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+[![Lifecycle:
+maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html#maturing-1)
 
 <!--
 [![CRAN Status](https://www.r-pkg.org/badges/version/talk)](https://CRAN.R-project.org/package=talk)
-&#10;[![Lifecycle: maturing](https://img.shields.io/badge/lifecycle-maturing-blue.svg)](https://lifecycle.r-lib.org/articles/stages.html#maturing-1)
 &#10;[![CRAN Downloads](https://cranlogs.r-pkg.org/badges/grand-total/talk)](https://CRAN.R-project.org/package=talk)
 &#10;-->
 
