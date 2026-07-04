@@ -48,8 +48,22 @@
 #'
 #' @return A tibble of segment-level embeddings (one row per segment), or, for
 #'   \code{model="whisper"} with \code{embeddings="both"}, a named list of two
-#'   tibbles (\code{encoder}, \code{decoder}). The settings used are saved as a comment (retrieve with
-#'   \code{comment()}).
+#'   tibbles (\code{encoder}, \code{decoder}). For several audio files, a
+#'   named list with one such result per file. The settings used are saved as
+#'   a comment (retrieve with \code{comment()}).
+#'
+#'   For \code{model = "whisper"}, feature columns are named
+#'   \code{f<dimension>_<statistic>}: each hidden dimension is summarised
+#'   across the segment's time frames with five statistics -- \code{_mea}
+#'   (mean), \code{_med} (median), \code{_var} (variance), \code{_min} and
+#'   \code{_max}. For example, the default whisper-medium model has 1024
+#'   hidden dimensions, so embedding six diarised segments returns a 6 x 5124
+#'   tibble: \code{segment_id}, \code{start_sec}, \code{end_sec} and
+#'   \code{speaker}, plus 1024 x 5 = 5120 feature columns
+#'   (\code{f00000_mea} ... \code{f01023_max}). The \code{_mea} columns alone
+#'   are the closest analogue to standard mean-pooled embeddings.
+#'   \code{model = "whispa"} instead returns a single WhiSPA embedding per
+#'   segment (no summary statistics).
 #'
 #' @examples
 #' \dontrun{
