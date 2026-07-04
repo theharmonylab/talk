@@ -15,7 +15,8 @@ talkEmbedSegments(
   whispa_repo_path = NULL,
   output_dir = NULL,
   device = NULL,
-  condaenv = "talkrpp_condaenv"
+  condaenv = "talkrpp_condaenv",
+  verbose = FALSE
 )
 }
 \arguments{

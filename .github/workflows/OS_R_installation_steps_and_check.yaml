@@ -148,7 +148,7 @@ jobs:
         run: |
           library(talk)
           wav <- system.file("extdata", "test_diarise.wav", package = "talk")
-          diar <- talk::talkTranscribeDiarise(audio = wav, model_name = "tiny.en")
+          diar <- talk::talkTranscribeDiarise(audio = wav, model_name = "tiny.en", verbose = TRUE)
           cat("diarise status:", diar$status, "\n")
           cat("ffmpeg used:", Sys.which("ffmpeg"), "\n")
           if (!identical(diar$status, "success")) {
@@ -167,7 +167,8 @@ jobs:
                                          model = "whisper",
                                          embeddings = "encoder",
                                          participant_only = FALSE,
-                                         whisper_model_id = "openai/whisper-tiny")
+                                         whisper_model_id = "openai/whisper-tiny",
+                                         verbose = TRUE)
           stopifnot(is.data.frame(emb), nrow(emb) == nrow(diar$transcript))
           cat("talkEmbedSegments rows:", nrow(emb), "cols:", ncol(emb), "\n")
         shell: Rscript {0}

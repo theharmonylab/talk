@@ -37,6 +37,10 @@
 #'   stack (including whisnemo[embed] and WhiSPA). Default
 #'   \code{"talkrpp_condaenv"}, the single environment installed by
 #'   \code{talkrpp_install()}.
+#' @param verbose (logical) If FALSE (default), the technical output from the
+#'   Python backend (model-loading logs, progress bars, warnings) is hidden
+#'   and only short status messages are shown. Set TRUE to stream the full
+#'   backend output, e.g. when debugging.
 #'
 #' @return A tibble of segment-level embeddings (one row per segment), or, for
 #'   \code{model="whisper"} with \code{embeddings="both"}, a named list of two
@@ -70,7 +74,8 @@ talkEmbedSegments <- function(
     whispa_repo_path = NULL,
     output_dir = NULL,
     device = NULL,
-    condaenv = "talkrpp_condaenv"){
+    condaenv = "talkrpp_condaenv",
+    verbose = FALSE){
 
   embed_py <- system.file("python", "embed.py", package = "talk", mustWork = TRUE)
 
@@ -92,6 +97,13 @@ talkEmbedSegments <- function(
               "produce invalid embeddings; use device = 'cpu' instead.",
               call. = FALSE)
     }
+  }
+
+  if (!verbose) {
+    message(
+      "Computing segment embeddings for '", basename(audio), "' ... ",
+      "(the first run downloads models; set verbose = TRUE for detailed output)"
+    )
   }
 
   # Run in a subprocess bound to the diarize/embed conda environment, mirroring
@@ -156,8 +168,11 @@ talkEmbedSegments <- function(
       embed_py = embed_py,
       macos_vm = macos_vm
     ),
-    show = TRUE
+    show = verbose
   )
+  if (!verbose && !is.null(result$status) && result$status == "success") {
+    message("Done.")
+  }
 
   if (!is.null(result$status) && result$status == "error") {
     hint <- if (!is.null(result$error) && grepl("No module named", result$error)) {

@@ -15,6 +15,10 @@
 ## Minor changes and fixes
 * Added function aliases: `talkTranscribe()` (same as `talkText()`) and
   `talkTextDiarise()` (same as `talkTranscribeDiarise()`).
+* `talkTranscribeDiarise()` and `talkEmbedSegments()` gained a `verbose`
+  argument (default `FALSE`): the technical Python backend output is now
+  hidden by default and replaced by short status messages; errors are always
+  shown.
 * The talk package now uses a **single conda environment** (`talkrpp_condaenv`)
   for all functions. `talkrpp_install()` installs the full stack (transcription,
   embeddings, diarisation and segment embeddings), and

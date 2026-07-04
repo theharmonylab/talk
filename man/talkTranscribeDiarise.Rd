@@ -25,7 +25,8 @@ talkTranscribeDiarise(
   output_formats = "csv",
   remove_stutters = FALSE,
   stutter_threshold = 0.8,
-  condaenv = "talkrpp_condaenv"
+  condaenv = "talkrpp_condaenv",
+  verbose = FALSE
 )
 
 talkTextDiarise(
@@ -48,7 +49,8 @@ talkTextDiarise(
   output_formats = "csv",
   remove_stutters = FALSE,
   stutter_threshold = 0.8,
-  condaenv = "talkrpp_condaenv"
+  condaenv = "talkrpp_condaenv",
+  verbose = FALSE
 )
 }
 \arguments{
@@ -130,6 +132,11 @@ higher values remove only near-identical repeats. Default is 0.8.}
 
 \item{condaenv}{(string) Name of the conda environment with the talk stack installed.
 Default is \code{"talkrpp_condaenv"} (installed by \code{talkrpp_install()}).}
+
+\item{verbose}{(logical) If FALSE (default), the technical output from the
+Python backend (model-loading logs, progress bars, warnings) is hidden
+and only short status messages are shown. Set TRUE to stream the full
+backend output, e.g. when debugging.}
 }
 \value{
 A list with keys \code{output_files} (character vector of written file paths)

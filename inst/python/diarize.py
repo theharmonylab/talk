@@ -148,8 +148,10 @@ def diarize_audio(
 
     audio_basename = os.path.basename(audio_path)
     audio_copy = os.path.join(output_dir, audio_basename)
+    copied_audio = False
     if os.path.abspath(audio_path) != os.path.abspath(audio_copy):
         shutil.copy2(audio_path, audio_copy)
+        copied_audio = True
 
     os.chdir(output_dir)
 
@@ -211,6 +213,14 @@ def diarize_audio(
 
     finally:
         os.chdir(original_cwd)
+        # Remove the temporary copy of the input audio (made above only to
+        # steer run_diarize's outputs into output_dir). Never removes the
+        # user's original file.
+        if copied_audio:
+            try:
+                os.remove(audio_copy)
+            except OSError:
+                pass
 
 
 def diarize_batch(

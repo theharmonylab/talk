@@ -65,6 +65,10 @@
 #'   higher values remove only near-identical repeats. Default is 0.8.
 #' @param condaenv (string) Name of the conda environment with the talk stack installed.
 #'   Default is \code{"talkrpp_condaenv"} (installed by \code{talkrpp_install()}).
+#' @param verbose (logical) If FALSE (default), the technical output from the
+#'   Python backend (model-loading logs, progress bars, warnings) is hidden
+#'   and only short status messages are shown. Set TRUE to stream the full
+#'   backend output, e.g. when debugging.
 #'
 #' @return A list with keys \code{output_files} (character vector of written file paths)
 #'   and \code{status} (\code{"success"} or \code{"error"}).
@@ -114,7 +118,8 @@ talkTranscribeDiarise <- function(
     output_formats = "csv",
     remove_stutters = FALSE,
     stutter_threshold = 0.8,
-    condaenv = "talkrpp_condaenv"
+    condaenv = "talkrpp_condaenv",
+    verbose = FALSE
     ) {
 
   diarize_py <- system.file("python", "diarize.py", package = "talk", mustWork = TRUE)
@@ -131,6 +136,13 @@ talkTranscribeDiarise <- function(
       "or re-run talkrpp_install(), which installs a static ffmpeg fallback automatically.\n",
       "Note: do NOT install ffmpeg with conda -- conda's ffmpeg breaks torchaudio's audio loading.",
       call. = FALSE
+    )
+  }
+
+  if (!verbose) {
+    message(
+      "Transcribing and diarising '", basename(audio), "' ... ",
+      "(the first run downloads models; set verbose = TRUE for detailed output)"
     )
   }
 
@@ -209,20 +221,31 @@ talkTranscribeDiarise <- function(
       condaenv            = condaenv,
       diarize_py          = diarize_py
     ),
-    show = TRUE
+    show = verbose
   )
 
-  # A missing whisnemo module means the conda environment predates the full
-  # talk stack (e.g. it was created by an older talk version, when
-  # transcription and diarisation used separate environments). Point the user
-  # to the fix instead of only surfacing Python's cryptic error.
   if (is.list(result) && identical(result$status, "error") &&
-      !is.null(result$error) && grepl("No module named", result$error)) {
-    message(
-      "The Python environment '", condaenv, "' does not contain the talk ",
-      "diarisation stack (", result$error, ").\n",
-      "Re-run talkrpp_install() to upgrade the environment, then try again."
-    )
+      !is.null(result$error)) {
+    if (grepl("No module named", result$error)) {
+      # A missing whisnemo module means the conda environment predates the
+      # full talk stack (e.g. it was created by an older talk version, when
+      # transcription and diarisation used separate environments). Point the
+      # user to the fix instead of only surfacing Python's cryptic error.
+      message(
+        "The Python environment '", condaenv, "' does not contain the talk ",
+        "diarisation stack (", result$error, ").\n",
+        "Re-run talkrpp_install() to upgrade the environment, then try again."
+      )
+    } else if (!verbose) {
+      # With the backend output hidden, make sure the error still surfaces.
+      message(
+        "Diarisation failed: ", result$error, "\n",
+        "Re-run with verbose = TRUE to see the full backend output."
+      )
+    }
+  } else if (!verbose && is.list(result) &&
+             identical(result$status, "success")) {
+    message("Done.")
   }
 
   result
