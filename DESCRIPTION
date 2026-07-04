@@ -1,7 +1,7 @@
 Package: talk
 Type: Package
 Title: Analyses of audio recordings using transformers models
-Version: 0.50
+Version: 0.60
 Authors@R: c(
     person("Oscar", "Kjell", , "oscar.kjell@psy.lu.se", role = c("aut", "cre"),
       comment = c(ORCID = "0000-0002-2728-6278"),
