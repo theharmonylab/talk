@@ -20,11 +20,15 @@ talkEmbedSegments(
 )
 }
 \arguments{
-\item{audio}{(string) Path to a single audio file (e.g. \code{.wav}).}
+\item{audio}{(string or character vector) Path to a single audio file
+(e.g. \code{.wav}) or a vector of file paths. Several files are processed
+separately (paired with `transcript`), returning a named list.}
 
-\item{transcript}{(string or data.frame) Diarized transcript: either a path
-to a CSV, or the transcript tibble returned by
-\code{\link{talkTranscribeDiarise}}. Must contain per-segment start/end
+\item{transcript}{(string, data.frame, or list) Diarized transcript: a path
+to a CSV, the transcript tibble returned by
+\code{\link{talkTranscribeDiarise}}, or -- for several audio files --
+the named list returned by a multi-file \code{talkTranscribeDiarise()}
+run (or a vector of CSV paths) of the same length as \code{audio}. Must contain per-segment start/end
 timestamps, and a \code{speaker_role} column if \code{participant_only=TRUE}.}
 
 \item{model}{(string) \code{"whisper"} or \code{"whispa"}.}
@@ -61,7 +65,9 @@ stack (including whisnemo[embed] and WhiSPA). Default
 \value{
 A tibble of segment-level embeddings (one row per segment), or, for
   \code{model="whisper"} with \code{embeddings="both"}, a named list of two
-  tibbles (\code{encoder}, \code{decoder}). The settings used are saved as a comment (retrieve with \code{comment()}).
+  tibbles (\code{encoder}, \code{decoder}). For several audio files, a
+named list with one such result per file. The settings used are saved as
+a comment (retrieve with \code{comment()}).
 }
 \description{
 Unlike \code{\link{talkEmbed}}, which returns one embedding per whole audio

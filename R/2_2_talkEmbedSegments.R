@@ -10,10 +10,14 @@
 #' summary statistics) and WhiSPA (a single speech-psychological embedding per
 #' segment).
 #'
-#' @param audio (string) Path to a single audio file (e.g. \code{.wav}).
-#' @param transcript (string or data.frame) Diarized transcript: either a path
-#'   to a CSV, or the transcript tibble returned by
-#'   \code{\link{talkTranscribeDiarise}}. Must contain per-segment start/end
+#' @param audio (string or character vector) Path to a single audio file
+#'   (e.g. \code{.wav}) or a vector of file paths. Several files are processed
+#'   separately (paired with `transcript`), returning a named list.
+#' @param transcript (string, data.frame, or list) Diarized transcript: a path
+#'   to a CSV, the transcript tibble returned by
+#'   \code{\link{talkTranscribeDiarise}}, or -- for several audio files --
+#'   the named list returned by a multi-file \code{talkTranscribeDiarise()}
+#'   run (or a vector of CSV paths) of the same length as \code{audio}. Must contain per-segment start/end
 #'   timestamps, and a \code{speaker_role} column if \code{participant_only=TRUE}.
 #' @param model (string) \code{"whisper"} or \code{"whispa"}.
 #' @param embeddings (string) For \code{model="whisper"}: \code{"encoder"},
@@ -79,6 +83,70 @@ talkEmbedSegments <- function(
     verbose = FALSE){
 
   time_start <- Sys.time()
+
+  # Validate the input early: type errors on the Python side can be silently
+  # swallowed across the callr/reticulate boundary (returning NULL), so fail
+  # here with clear messages instead.
+  if (!is.character(audio) || length(audio) < 1) {
+    stop("`audio` must be a character vector with at least one file path.",
+         call. = FALSE)
+  }
+  missing_files <- audio[!file.exists(audio)]
+  if (length(missing_files) > 0) {
+    stop("Audio file(s) not found: ", paste(missing_files, collapse = ", "),
+         call. = FALSE)
+  }
+
+  # Several audio files: `transcript` must be a matching collection (the named
+  # list returned by talkTranscribeDiarise(), or a vector of CSV paths). Each
+  # audio/transcript pair is processed separately, returning a named list.
+  if (length(audio) > 1) {
+    transcript_ok <-
+      (is.list(transcript) && !is.data.frame(transcript) &&
+         length(transcript) == length(audio)) ||
+      (is.character(transcript) && length(transcript) == length(audio))
+    if (!transcript_ok) {
+      stop("For several audio files, `transcript` must be a list of ",
+           "transcripts (e.g. from talkTranscribeDiarise()) or a vector of ",
+           "CSV paths of the same length as `audio`.", call. = FALSE)
+    }
+    out <- lapply(seq_along(audio), function(i) {
+      talkEmbedSegments(
+        audio = audio[[i]], transcript = transcript[[i]], model = model,
+        embeddings = embeddings, participant_only = participant_only,
+        whisper_model_id = whisper_model_id, whispa_model_id = whispa_model_id,
+        whispa_repo_path = whispa_repo_path, output_dir = output_dir,
+        device = device, condaenv = condaenv, verbose = verbose
+      )
+    })
+    names(out) <- make.unique(basename(audio))
+    return(out)
+  }
+
+  # Accept a length-1 list from a multi-file talkTranscribeDiarise() run.
+  if (is.list(transcript) && !is.data.frame(transcript) &&
+      length(transcript) == 1 && is.data.frame(transcript[[1]])) {
+    transcript <- transcript[[1]]
+  }
+  if (is.character(transcript)) {
+    if (length(transcript) != 1 || !file.exists(transcript)) {
+      stop("`transcript` must be an existing CSV file path or a data.frame.",
+           call. = FALSE)
+    }
+  } else if (!is.data.frame(transcript)) {
+    stop("`transcript` must be an existing CSV file path or a data.frame.",
+         call. = FALSE)
+  }
+
+  available_envs <- list_talkrpp_envs()
+  if (!condaenv %in% available_envs) {
+    stop(
+      "Conda environment '", condaenv, "' was not found. Available environments: ",
+      if (length(available_envs)) paste(available_envs, collapse = ", ") else "(none)",
+      ". Run talkrpp_install() to install the default 'talkrpp_condaenv'.",
+      call. = FALSE
+    )
+  }
 
   embed_py <- system.file("python", "embed.py", package = "talk", mustWork = TRUE)
 
@@ -173,7 +241,11 @@ talkEmbedSegments <- function(
     ),
     show = verbose
   )
-  if (!verbose && !is.null(result$status) && result$status == "success") {
+  if (!is.list(result)) {
+    stop("talkEmbedSegments() failed: the Python backend returned no result. ",
+         "Re-run with verbose = TRUE to see the backend output.", call. = FALSE)
+  }
+  if (!verbose && identical(result$status, "success")) {
     message("Done.")
   }
 

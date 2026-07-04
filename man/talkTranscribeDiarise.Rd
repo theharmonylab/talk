@@ -55,7 +55,9 @@ talkTextDiarise(
 }
 \arguments{
 \item{audio}{(string or character vector) Path to a single audio file
-(e.g., \code{.wav}) or a vector of file paths. Each file is processed separately.}
+(e.g., \code{.wav}) or a vector of file paths. Several files are
+processed separately, returning a named list of transcript tibbles
+(names are the file names).}
 
 \item{output_dir}{(string) Optional directory where transcript files
 (csv/txt/srt, see \code{output_formats}) are saved. Default NULL: no
@@ -141,10 +143,11 @@ and only short status messages are shown. Set TRUE to stream the full
 backend output, e.g. when debugging.}
 }
 \value{
-A tibble with one row per speaker turn and columns \code{speaker},
+For a single audio file, a tibble with one row per speaker turn and columns \code{speaker},
   \code{start_timestamp}, \code{end_timestamp} and \code{message}. On
   failure an error is raised (with a hint about the likely fix). The
   settings used are saved as a comment (retrieve with \code{comment()}).
+  For several audio files, a named list of such tibbles.
 }
 \description{
 Transcribes one or more audio recordings using Whisper and performs speaker

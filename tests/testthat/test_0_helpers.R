@@ -91,6 +91,35 @@ test_that("talkrpp_uninstall errors on a nonexistent environment", {
   )
 })
 
+test_that("talkTranscribeDiarise validates audio input early", {
+  testthat::expect_error(
+    talk::talkTranscribeDiarise(audio = "does_not_exist.wav"),
+    regexp = "not found"
+  )
+  testthat::expect_error(
+    talk::talkTranscribeDiarise(audio = character(0)),
+    regexp = "at least one"
+  )
+})
+
+test_that("talkEmbedSegments validates input early", {
+  tr <- data.frame(speaker = "s", start_timestamp = "00:00:00.000",
+                   end_timestamp = "00:00:01.000", message = "hi")
+  wav <- system.file("extdata", "test_short.wav", package = "talk")
+  testthat::expect_error(
+    talk::talkEmbedSegments(audio = "does_not_exist.wav", transcript = tr),
+    regexp = "not found"
+  )
+  testthat::expect_error(
+    talk::talkEmbedSegments(audio = c(wav, wav), transcript = tr),
+    regexp = "same length"
+  )
+  testthat::expect_error(
+    talk::talkEmbedSegments(audio = wav, transcript = 42),
+    regexp = "data.frame"
+  )
+})
+
 test_that("talkEmbedSegments fails cleanly on a nonexistent conda environment", {
   skip_on_cran()
   skip_if_not(

@@ -23,6 +23,13 @@
   argument (default `FALSE`): the technical Python backend output is now
   hidden by default and replaced by short status messages; errors are always
   shown.
+* `talkTranscribeDiarise()` now supports several audio files (returned as a
+  named list of transcript tibbles), validates that the audio files exist
+  before starting, and errors clearly when the backend produces no result.
+  `talkEmbedSegments()` likewise supports several audio files (paired with
+  the transcript list from a multi-file `talkTranscribeDiarise()` run) and
+  validates its `audio` and `transcript` inputs early with clear error
+  messages.
 * `talkTranscribeDiarise()` now returns the transcript directly as a tibble
   (previously a list with `$transcript`, `$output_files` and `$status`);
   failures are signalled as R errors with actionable hints. It also no longer

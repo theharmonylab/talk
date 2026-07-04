@@ -7,7 +7,9 @@
 #' Requires the talk conda environment installed via \code{talkrpp_install()}.
 #'
 #' @param audio (string or character vector) Path to a single audio file
-#'   (e.g., \code{.wav}) or a vector of file paths. Each file is processed separately.
+#'   (e.g., \code{.wav}) or a vector of file paths. Several files are
+#'   processed separately, returning a named list of transcript tibbles
+#'   (names are the file names).
 #' @param output_dir (string) Optional directory where transcript files
 #'   (csv/txt/srt, see \code{output_formats}) are saved. Default NULL: no
 #'   files are written -- the transcript is only returned as a tibble.
@@ -72,10 +74,11 @@
 #'   and only short status messages are shown. Set TRUE to stream the full
 #'   backend output, e.g. when debugging.
 #'
-#' @return A tibble with one row per speaker turn and columns \code{speaker},
+#' @return For a single audio file, a tibble with one row per speaker turn and columns \code{speaker},
 #'   \code{start_timestamp}, \code{end_timestamp} and \code{message}. On
 #'   failure an error is raised (with a hint about the likely fix). The
 #'   settings used are saved as a comment (retrieve with \code{comment()}).
+#'   For several audio files, a named list of such tibbles.
 #'
 #' @details
 #' Transcript files (diarized CSVs, SRTs, or TXT) are written only when
@@ -129,6 +132,49 @@ talkTranscribeDiarise <- function(
     ) {
 
   time_start <- Sys.time()
+
+  # Validate the input early: type errors on the Python side can be silently
+  # swallowed across the callr/reticulate boundary (returning NULL), so fail
+  # here with clear messages instead.
+  if (!is.character(audio) || length(audio) < 1) {
+    stop("`audio` must be a character vector with at least one file path.",
+         call. = FALSE)
+  }
+  missing_files <- audio[!file.exists(audio)]
+  if (length(missing_files) > 0) {
+    stop("Audio file(s) not found: ", paste(missing_files, collapse = ", "),
+         call. = FALSE)
+  }
+
+  # Several files: process each separately and return a named list of
+  # transcript tibbles.
+  if (length(audio) > 1) {
+    out <- lapply(audio, function(a) {
+      talkTranscribeDiarise(
+        audio = a, output_dir = output_dir, model_name = model_name,
+        language = language, device = device, stemming = stemming,
+        suppress_numerals = suppress_numerals, batch_size = batch_size,
+        num_speakers = num_speakers, oracle_num_speakers = oracle_num_speakers,
+        vad_model = vad_model, speaker_model = speaker_model, onset = onset,
+        offset = offset, pad_offset = pad_offset, domain_type = domain_type,
+        output_formats = output_formats, remove_stutters = remove_stutters,
+        stutter_threshold = stutter_threshold, condaenv = condaenv,
+        verbose = verbose
+      )
+    })
+    names(out) <- make.unique(basename(audio))
+    return(out)
+  }
+
+  available_envs <- list_talkrpp_envs()
+  if (!condaenv %in% available_envs) {
+    stop(
+      "Conda environment '", condaenv, "' was not found. Available environments: ",
+      if (length(available_envs)) paste(available_envs, collapse = ", ") else "(none)",
+      ". Run talkrpp_install() to install the default 'talkrpp_condaenv'.",
+      call. = FALSE
+    )
+  }
 
   diarize_py <- system.file("python", "diarize.py", package = "talk", mustWork = TRUE)
 
@@ -234,7 +280,12 @@ talkTranscribeDiarise <- function(
 
   # Failures are signalled as R errors (with actionable hints), so the
   # function can simply return the transcript itself.
-  if (is.list(result) && identical(result$status, "error")) {
+  if (!is.list(result)) {
+    stop("talkTranscribeDiarise() failed: the Python backend returned no ",
+         "result. Re-run with verbose = TRUE to see the backend output.",
+         call. = FALSE)
+  }
+  if (identical(result$status, "error")) {
     err <- if (is.null(result$error)) "unknown error" else result$error
     hint <- if (grepl("No module named", err)) {
       # A missing whisnemo module means the conda environment predates the
