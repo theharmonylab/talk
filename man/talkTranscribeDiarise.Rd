@@ -2,9 +2,33 @@
 % Please edit documentation in R/3_1_talkTranscribeDiarise.R
 \name{talkTranscribeDiarise}
 \alias{talkTranscribeDiarise}
+\alias{talkTextDiarise}
 \title{Transcribe and Diarize Audio Recordings}
 \usage{
 talkTranscribeDiarise(
+  audio,
+  output_dir = getwd(),
+  model_name = "medium.en",
+  language = NULL,
+  device = if (Sys.info()[["sysname"]] == "Darwin") "cpu" else "cuda",
+  stemming = TRUE,
+  suppress_numerals = FALSE,
+  batch_size = 8,
+  num_speakers = 2,
+  oracle_num_speakers = TRUE,
+  vad_model = "vad_multilingual_marblenet",
+  speaker_model = "titanet_large",
+  onset = 0.8,
+  offset = 0.5,
+  pad_offset = -0.05,
+  domain_type = "telephonic",
+  output_formats = "csv",
+  remove_stutters = FALSE,
+  stutter_threshold = 0.8,
+  condaenv = "talkrpp_condaenv"
+)
+
+talkTextDiarise(
   audio,
   output_dir = getwd(),
   model_name = "medium.en",

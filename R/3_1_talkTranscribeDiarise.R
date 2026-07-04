@@ -165,3 +165,7 @@ talkTranscribeDiarise <- function(
     show = TRUE
   )
 }
+
+#' @rdname talkTranscribeDiarise
+#' @export
+talkTextDiarise <- talkTranscribeDiarise

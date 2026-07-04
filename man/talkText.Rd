@@ -2,9 +2,21 @@
 % Please edit documentation in R/1_talkText.R
 \name{talkText}
 \alias{talkText}
+\alias{talkTranscribe}
 \title{Transform audio recordings to embeddings}
 \usage{
 talkText(
+  talk_filepaths = talk_filepaths,
+  model = "openai/whisper-small",
+  device = "cpu",
+  tokenizer_parallelism = FALSE,
+  hg_gated = FALSE,
+  hg_token = "",
+  trust_remote_code = FALSE,
+  logging_level = "warning"
+)
+
+talkTranscribe(
   talk_filepaths = talk_filepaths,
   model = "openai/whisper-small",
   device = "cpu",

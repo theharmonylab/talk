@@ -5,6 +5,11 @@ library(talk)
 # model downloads. These run in every coverage job, independently of the
 # heavy install-based tests.
 
+test_that("function aliases point to the same implementations", {
+  testthat::expect_identical(talk::talkTranscribe, talk::talkText)
+  testthat::expect_identical(talk::talkTextDiarise, talk::talkTranscribeDiarise)
+})
+
 test_that("ffmpeg_install_instruction returns an OS-appropriate string", {
   instr <- talk:::ffmpeg_install_instruction()
   testthat::expect_type(instr, "character")

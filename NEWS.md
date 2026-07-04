@@ -13,6 +13,8 @@
 * Added `list_talkrpp_envs()` to list the available Python environments.
 
 ## Minor changes and fixes
+* Added function aliases: `talkTranscribe()` (same as `talkText()`) and
+  `talkTextDiarise()` (same as `talkTranscribeDiarise()`).
 * The talk package now uses a **single conda environment** (`talkrpp_condaenv`)
   for all functions. `talkrpp_install()` installs the full stack (transcription,
   embeddings, diarisation and segment embeddings), and

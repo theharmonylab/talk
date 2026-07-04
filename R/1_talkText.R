@@ -61,3 +61,7 @@ talkText <- function(
 
   return(text)
 }
+
+#' @rdname talkText
+#' @export
+talkTranscribe <- talkText
