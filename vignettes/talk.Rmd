@@ -123,7 +123,9 @@ embeddings
 #### talkTranscribeDiarise(): transcribe and split by speaker
 Transcribes **and** diarises a recording — producing a transcript split by
 speaker and timestamped. Returns a list with `$transcript` (a data.frame),
-`$output_files`, and `$status`. Requires the diarise environment.
+`$output_files`, and `$status`. By default no files are written — the
+transcript comes back as the data.frame; provide `output_dir` to also save
+csv/txt/srt transcript files.
 
 ```{r diarise, eval = evaluate}
 diar <- talkTranscribeDiarise(

@@ -7,7 +7,7 @@
 \usage{
 talkTranscribeDiarise(
   audio,
-  output_dir = getwd(),
+  output_dir = NULL,
   model_name = "medium.en",
   language = NULL,
   device = if (Sys.info()[["sysname"]] == "Darwin") "cpu" else "cuda",
@@ -31,7 +31,7 @@ talkTranscribeDiarise(
 
 talkTextDiarise(
   audio,
-  output_dir = getwd(),
+  output_dir = NULL,
   model_name = "medium.en",
   language = NULL,
   device = if (Sys.info()[["sysname"]] == "Darwin") "cpu" else "cuda",
@@ -57,7 +57,10 @@ talkTextDiarise(
 \item{audio}{(string or character vector) Path to a single audio file
 (e.g., \code{.wav}) or a vector of file paths. Each file is processed separately.}
 
-\item{output_dir}{(string) Directory where output files will be saved. Defaults to the current working directory.}
+\item{output_dir}{(string) Optional directory where transcript files
+(csv/txt/srt, see \code{output_formats}) are saved. Default NULL: no
+files are written -- the transcript is returned directly as a data.frame
+in \code{$transcript}.}
 
 \item{model_name}{(string) Whisper model name (e.g., \code{"medium.en"}). Options: \code{"tiny"}, \code{"base"}, \code{"small"}, \code{"medium"}, \code{"large"}.}
 
@@ -139,8 +142,11 @@ and only short status messages are shown. Set TRUE to stream the full
 backend output, e.g. when debugging.}
 }
 \value{
-A list with keys \code{output_files} (character vector of written file paths)
-  and \code{status} (\code{"success"} or \code{"error"}).
+A list with keys \code{transcript} (a data.frame with columns
+  \code{speaker}, \code{start_timestamp}, \code{end_timestamp} and
+  \code{message}), \code{output_files} (character vector of written file
+  paths; empty when \code{output_dir} is NULL) and \code{status}
+  (\code{"success"} or \code{"error"}).
 }
 \description{
 Transcribes one or more audio recordings using Whisper and performs speaker
@@ -149,7 +155,9 @@ toolkit. Runs in a subprocess to avoid OpenMP conflicts on macOS.
 Requires the talk conda environment installed via \code{talkrpp_install()}.
 }
 \details{
-Output files (diarized CSVs, SRTs, or TXT transcripts) are written to \code{output_dir}.
+Transcript files (diarized CSVs, SRTs, or TXT) are written only when
+\code{output_dir} is provided; by default the transcript is only returned
+as a data.frame.
 
 \strong{Devices and result correctness.} \code{"cpu"} always produces
 correct results and is the safe default on macOS. \code{"cuda"} (NVIDIA

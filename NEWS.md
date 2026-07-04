@@ -19,6 +19,10 @@
   argument (default `FALSE`): the technical Python backend output is now
   hidden by default and replaced by short status messages; errors are always
   shown.
+* `talkTranscribeDiarise()` no longer writes files by default: `output_dir`
+  now defaults to NULL (the transcript is returned as a data.frame), and no
+  temporary files (audio copy, timing logs) are left behind. Provide
+  `output_dir` to save csv/txt/srt transcript files.
 * The talk package now uses a **single conda environment** (`talkrpp_condaenv`)
   for all functions. `talkrpp_install()` installs the full stack (transcription,
   embeddings, diarisation and segment embeddings), and

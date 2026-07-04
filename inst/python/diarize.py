@@ -78,7 +78,10 @@ def diarize_audio(
     audio_path : str
         Path to the audio file.
     output_dir : str, optional
-        Directory for outputs. Defaults to same directory as audio file.
+        Directory where output files (.txt/.srt/.csv) are kept. If None
+        (default), the pipeline runs in a temporary directory that is removed
+        afterwards: no files are kept, and the transcript is only returned as
+        a DataFrame.
     model_name : str
         Whisper model name.
     language : str, optional
@@ -128,7 +131,8 @@ def diarize_audio(
         - "output_files" : list of str
             Paths to the files written in output_dir (.txt, .srt,
             _formatted.csv, and _formatted_corrected.csv if stutter
-            removal was enabled).
+            removal was enabled). Empty when output_dir is None (no files
+            are kept).
         - "status" : str
             "success" or "error".
         - "error" : str
@@ -137,8 +141,13 @@ def diarize_audio(
     if output_formats is None:
         output_formats = ["csv"]
 
+    # With no output_dir, run in a temporary directory that is removed at the
+    # end: the transcript is returned as a DataFrame, so files need only be
+    # kept when the user explicitly asks for them.
+    keep_files = output_dir is not None
     if output_dir is None:
-        output_dir = os.path.dirname(os.path.abspath(audio_path))
+        import tempfile
+        output_dir = tempfile.mkdtemp(prefix="talk_diarise_")
 
     # run_diarize writes outputs next to the input audio file, so we copy
     # the audio into output_dir and run on the copy. This ensures all
@@ -179,13 +188,15 @@ def diarize_audio(
             domain_type=domain_type,
         )
 
-        # Collect output files from output_dir
+        # Collect output files from output_dir (none are reported when the
+        # run used a temporary directory, since they are removed below)
         base = os.path.splitext(audio_basename)[0]
         output_files = []
-        for ext in [".txt", ".srt", "_formatted.csv", "_formatted_corrected.csv"]:
-            candidate = os.path.join(output_dir, f"{base}{ext}")
-            if os.path.isfile(candidate):
-                output_files.append(candidate)
+        if keep_files:
+            for ext in [".txt", ".srt", "_formatted.csv", "_formatted_corrected.csv"]:
+                candidate = os.path.join(output_dir, f"{base}{ext}")
+                if os.path.isfile(candidate):
+                    output_files.append(candidate)
 
         # Load the formatted transcript into a DataFrame for direct use in R.
         # reticulate converts a pandas DataFrame to an R data.frame.
@@ -213,14 +224,26 @@ def diarize_audio(
 
     finally:
         os.chdir(original_cwd)
-        # Remove the temporary copy of the input audio (made above only to
-        # steer run_diarize's outputs into output_dir). Never removes the
-        # user's original file.
-        if copied_audio:
+        if keep_files:
+            # Remove the temporary copy of the input audio (made above only
+            # to steer run_diarize's outputs into output_dir). Never removes
+            # the user's original file.
+            if copied_audio:
+                try:
+                    os.remove(audio_copy)
+                except OSError:
+                    pass
+            # Remove whisnemo's timing telemetry (timing_logs/<base>_timing.csv)
+            base = os.path.splitext(audio_basename)[0]
+            timing_dir = os.path.join(output_dir, "timing_logs")
             try:
-                os.remove(audio_copy)
+                os.remove(os.path.join(timing_dir, f"{base}_timing.csv"))
+                os.rmdir(timing_dir)  # only removes it when empty
             except OSError:
                 pass
+        else:
+            # Temporary run directory: remove everything.
+            shutil.rmtree(output_dir, ignore_errors=True)
 
 
 def diarize_batch(
