@@ -63,6 +63,27 @@ talkEmbed <- function(
 
   time_start <- Sys.time()
 
+  # Validate input early, before any Python is involved.
+  if (!is.character(talk_filepaths) || length(talk_filepaths) < 1) {
+    stop("`talk_filepaths` must be a character vector with at least one file path.",
+         call. = FALSE)
+  }
+  missing_files <- talk_filepaths[!file.exists(talk_filepaths)]
+  if (length(missing_files) > 0) {
+    stop("Audio file(s) not found: ", paste(missing_files, collapse = ", "),
+         call. = FALSE)
+  }
+  # The decoder consumes both audio and text, so transcriptions are required.
+  # (The R default "None" is a string and would slip past the backend's own
+  # None-check, producing empty output.)
+  if (isTRUE(use_decoder) &&
+      (is.null(audio_transcriptions) || identical(audio_transcriptions, "None"))) {
+    stop("use_decoder = TRUE requires `audio_transcriptions`: the decoder ",
+         "takes both audio and text.\nFirst transcribe, e.g.\n",
+         "  transcriptions <- talkTranscribe(talk_filepaths)\n",
+         "then pass audio_transcriptions = transcriptions.", call. = FALSE)
+  }
+
   reticulate::source_python(system.file("python",
                                         "huggingface_Interface4.py",
                                         package = "talk",
@@ -84,6 +105,10 @@ talkEmbed <- function(
     logging_level = logging_level
   )
 
+  if (length(embeddings) < 1) {
+    stop("talkEmbed() received no embeddings from the Python backend.",
+         call. = FALSE)
+  }
   embeddings <- embeddings[[1]]
 
   emb_tibble <- tibble::as_tibble(

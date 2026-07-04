@@ -50,6 +50,17 @@ talkText <- function(
 
   time_start <- Sys.time()
 
+  # Validate input early, before any Python is involved.
+  if (!is.character(talk_filepaths) || length(talk_filepaths) < 1) {
+    stop("`talk_filepaths` must be a character vector with at least one file path.",
+         call. = FALSE)
+  }
+  missing_files <- talk_filepaths[!file.exists(talk_filepaths)]
+  if (length(missing_files) > 0) {
+    stop("Audio file(s) not found: ", paste(missing_files, collapse = ", "),
+         call. = FALSE)
+  }
+
   reticulate::source_python(system.file("python",
                                         "huggingface_Interface4.py",
                                         package = "talk",

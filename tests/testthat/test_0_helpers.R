@@ -219,3 +219,14 @@ test_that("small internal utilities behave", {
   testthat::expect_true(is.null(pb) || (is.character(pb) && length(pb) == 1))
   testthat::expect_type(talk:::rcmd_running(), "logical")
 })
+
+test_that("talkText and talkEmbed validate input early", {
+  testthat::expect_error(talk::talkText("does_not_exist.wav"), regexp = "not found")
+  testthat::expect_error(talk::talkEmbed("does_not_exist.wav"), regexp = "not found")
+  wav <- system.file("extdata", "test_short.wav", package = "talk")
+  # use_decoder requires transcriptions (the decoder takes audio AND text)
+  testthat::expect_error(
+    talk::talkEmbed(wav, use_decoder = TRUE),
+    regexp = "audio_transcriptions"
+  )
+})

@@ -35,4 +35,17 @@ test_that("talkEmbed returns embeddings for an audio file", {
   testthat::expect_equal(emb_test$Dim2, -1.0071950, tolerance = 0.0001)
   testthat::expect_equal(emb_test$Dim3,  0.8974844, tolerance = 0.0001)
   testthat::expect_true(grepl("talkEmbed", comment(emb_test), fixed = TRUE))
+
+  # Decoder embeddings: requires transcriptions (audio AND text); this path
+  # was broken until v0.5, so guard it against regression.
+  txt <- talk::talkText(talk_filepaths = wav_path, model = "openai/whisper-tiny")
+  emb_dec <- talk::talkEmbed(
+    talk_filepaths       = wav_path,
+    model                = "openai/whisper-tiny",
+    use_decoder          = TRUE,
+    audio_transcriptions = txt
+  )
+  testthat::expect_s3_class(emb_dec, "data.frame")
+  testthat::expect_equal(dim(emb_dec), c(1L, 384L))
+  testthat::expect_true(all(is.finite(unlist(emb_dec))))
 })

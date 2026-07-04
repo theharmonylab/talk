@@ -426,21 +426,25 @@ def hgTransformerGetEmbedding(
                 # Whisper Embedding Generation (Encoder Representation)
                 elif isinstance(transformer_model, transformers.models.whisper.modeling_whisper.WhisperModel):
                     if use_decoder:
-                        # Whisper-based tokenization
+                        # R passes "None" (a string) when model_max_length is unset
+                        max_len = None if model_max_length in (None, "None") else int(model_max_length)
+                        # Whisper-based tokenization of the transcription
                         tokens = processor.tokenizer(
                             audio_transcriptions[i],
-                            # padding=True,
-                            # truncation=True,
-                            max_length=model_max_length,
+                            truncation=max_len is not None,
+                            max_length=max_len,
                             return_tensors='pt'
                         ).to(device)
 
-                        # Get WhiSPA's MEAN/LAST token
-                        whis_embs = model(
-                            audio_inputs['input_values'],
-                            tokens['input_ids'],
-                            tokens['attention_mask']
+                        # Decoder last hidden state, mean-pooled over tokens:
+                        # the decoder attends to the encoded audio while
+                        # processing the transcription text.
+                        out = transformer_model(
+                            input_features=audio_inputs['input_features'],
+                            decoder_input_ids=tokens['input_ids'],
+                            decoder_attention_mask=tokens['attention_mask'],
                         )
+                        embedding = out.last_hidden_state.mean(1).squeeze()
                     else:
                         embedding = transformer_model.encoder(**audio_inputs).last_hidden_state.mean(1).squeeze()
                 
