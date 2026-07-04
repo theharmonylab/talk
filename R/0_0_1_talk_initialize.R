@@ -205,13 +205,17 @@ set_talkrpp_python_option <- function(python_executable = NULL,
       fg = "blue", bg = NULL
     ))
     # a user can specify only one
-  } else if (sum(!is.null(c(python_executable, virtualenv, condaenv))) > 1) {
+    # (note: is.null() must be applied per argument -- c() would collapse the
+    # arguments into one vector and the count would never exceed 1)
+  } else if (sum(!vapply(list(python_executable, virtualenv, condaenv),
+                         is.null, logical(1))) > 1) {
     stop(paste(
       "Too many python environments are specified, please select only one",
       "from python_executable, virtualenv, and condaenv"
     ))
     # give warning when nothing is specified
-  } else if (sum(!is.null(c(python_executable, virtualenv, condaenv))) == 1) {
+  } else if (sum(!vapply(list(python_executable, virtualenv, condaenv),
+                         is.null, logical(1))) == 1) {
     if (!is.null(python_executable)) {
       if (check_talkrpp_model(python_executable) != "OK") {
         stop("talk required python packages ", " are not installed in ", python_executable)

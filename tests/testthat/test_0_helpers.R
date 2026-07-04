@@ -152,3 +152,70 @@ test_that("talkTranscribeDiarise fails cleanly on a nonexistent conda environmen
     talk::talkTranscribeDiarise(audio = wav, condaenv = "nonexistent_talk_env_xyz")
   )
 })
+
+test_that("python option helpers set, report and clear options", {
+  old <- options(talkrpp_python_executable = NULL,
+                 talkrpp_condaenv = NULL,
+                 talkrpp_virtualenv = NULL)
+  on.exit(options(old), add = TRUE)
+
+  talk:::clear_talkrpp_options()
+  testthat::expect_null(talk:::check_talkrpp_python_options())
+
+  suppressMessages(talk:::set_talkrpp_python_option(condaenv = "some_env"))
+  s <- talk:::check_talkrpp_python_options()
+  testthat::expect_equal(s$key, "talkrpp_condaenv")
+  testthat::expect_equal(s$val, "some_env")
+
+  # already-set branch: informs and keeps the existing setting
+  testthat::expect_message(
+    talk:::set_talkrpp_python_option(condaenv = "other_env"),
+    regexp = "already set"
+  )
+  testthat::expect_equal(talk:::check_talkrpp_python_options()$val, "some_env")
+
+  talk:::clear_talkrpp_options()
+  suppressMessages(talk:::set_talkrpp_python_option(virtualenv = "venv_x"))
+  testthat::expect_equal(talk:::check_talkrpp_python_options()$key, "talkrpp_virtualenv")
+
+  talk:::clear_talkrpp_options()
+  testthat::expect_error(
+    talk:::set_talkrpp_python_option(condaenv = "a", virtualenv = "b"),
+    regexp = "only one"
+  )
+  talk:::clear_talkrpp_options()
+})
+
+test_that("multi-file calls validate the conda environment per file", {
+  skip_if_not(
+    !is.null(tryCatch(reticulate::conda_binary("auto"), error = function(e) NULL)),
+    "No conda available"
+  )
+  wav <- system.file("extdata", "test_short.wav", package = "talk")
+  tr <- data.frame(speaker = "s", start_timestamp = "00:00:00.000",
+                   end_timestamp = "00:00:01.000", message = "hi")
+
+  # exercises the multi-file recursion up to the condaenv validation
+  testthat::expect_error(
+    talk::talkTranscribeDiarise(audio = c(wav, wav),
+                                condaenv = "nonexistent_talk_env_xyz"),
+    regexp = "was not found"
+  )
+  testthat::expect_error(
+    talk::talkEmbedSegments(audio = c(wav, wav), transcript = list(tr, tr),
+                            condaenv = "nonexistent_talk_env_xyz"),
+    regexp = "was not found"
+  )
+  # a length-1 transcript list is unwrapped for a single audio file
+  testthat::expect_error(
+    talk::talkEmbedSegments(audio = wav, transcript = list(tr),
+                            condaenv = "nonexistent_talk_env_xyz"),
+    regexp = "was not found"
+  )
+})
+
+test_that("small internal utilities behave", {
+  pb <- talk:::python_unix_binary("python3")
+  testthat::expect_true(is.null(pb) || (is.character(pb) && length(pb) == 1))
+  testthat::expect_type(talk:::rcmd_running(), "logical")
+})
