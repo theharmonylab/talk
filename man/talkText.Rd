@@ -3,7 +3,7 @@
 \name{talkText}
 \alias{talkText}
 \alias{talkTranscribe}
-\title{Transform audio recordings to embeddings}
+\title{Transcribe audio recordings to text (speech-to-text)}
 \usage{
 talkText(
   talk_filepaths = talk_filepaths,
@@ -48,7 +48,15 @@ talkTranscribe(
 A tibble with transcriptions. The settings used are saved as a comment (retrieve with \code{comment()}).
 }
 \description{
-Transform audio recordings to embeddings
+Transcribes audio recordings to plain text using Whisper. Use
+\code{talkText()} (or its alias \code{talkTranscribe()}) when you only
+need \emph{what} was said: it is simpler and considerably faster than
+\code{\link{talkTextDiarise}} / \code{\link{talkTranscribeDiarise}},
+which additionally identify \emph{who} speaks \emph{when} and therefore
+run the full speaker-diarisation pipeline. Typical uses are recordings
+with a single speaker, or analyses where speaker identity does not
+matter; for conversations where speaker turns are needed, use
+\code{talkTextDiarise()} instead.
 }
 \examples{
 # Transform audio recordings in text:

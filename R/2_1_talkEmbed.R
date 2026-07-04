@@ -2,6 +2,16 @@
 
 #' Transform audio recordings to embeddings
 #'
+#' Transforms a whole audio file into a single embedding (one numeric vector
+#' per recording). Use \code{talkEmbed()} when you want one representation
+#' per recording -- for example to predict a person-level measure from an
+#' entire spoken response (e.g. with the text-package's train functions). It
+#' is faster than \code{\link{talkEmbedSegments}} and needs no diarisation.
+#' Use \code{talkEmbedSegments()} instead when you need one embedding per
+#' speaker turn -- for example to analyse each speaker in a conversation
+#' separately (it requires a diarised transcript from
+#' \code{\link{talkTranscribeDiarise}}).
+#'
 #' @param talk_filepaths (string) path to a video file (.wav/) list of audio filepaths, each is embedded separately
 #' @param model shortcut name for Hugging Face pretained model. Full list https://huggingface.co/transformers/pretrained_models.html
 #' @param audio_transcriptions  (strings) audio_transcriptions : list

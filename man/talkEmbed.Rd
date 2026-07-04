@@ -48,10 +48,19 @@ This you can use the talkTranscribe() function which will return the list of tra
 \item{logging_level}{(string) Set logging level, options: "critical", "error", "warning", "info", "debug".}
 }
 \value{
-A tibble with embeddings. The settings used are saved as a comment (retrieve with \code{comment()}).
+A tibble with embeddings. The settings used are saved as a comment (retrieve with
+  \code{comment()}).
 }
 \description{
-Transform audio recordings to embeddings
+Transforms a whole audio file into a single embedding (one numeric vector
+per recording). Use \code{talkEmbed()} when you want one representation
+per recording -- for example to predict a person-level measure from an
+entire spoken response (e.g. with the text-package's train functions). It
+is faster than \code{\link{talkEmbedSegments}} and needs no diarisation.
+Use \code{talkEmbedSegments()} instead when you need one embedding per
+speaker turn -- for example to analyse each speaker in a conversation
+separately (it requires a diarised transcript from
+\code{\link{talkTranscribeDiarise}}).
 }
 \examples{
 # Transform audio recordings in the example dataset:

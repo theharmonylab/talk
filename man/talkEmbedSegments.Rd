@@ -61,13 +61,17 @@ silently produce invalid embeddings, so it is never auto-selected there
 stack (including whisnemo[embed] and WhiSPA). Default
 \code{"talkrpp_condaenv"}, the single environment installed by
 \code{talkrpp_install()}.}
+
+\item{verbose}{(logical) If FALSE (default), the technical output from the
+Python backend (model-loading logs, progress bars, warnings) is hidden
+and only short status messages are shown. Set TRUE to stream the full
+backend output, e.g. when debugging.}
 }
 \value{
 A tibble of segment-level embeddings (one row per segment), or, for
   \code{model="whisper"} with \code{embeddings="both"}, a named list of two
-  tibbles (\code{encoder}, \code{decoder}). For several audio files, a
-named list with one such result per file. The settings used are saved as
-a comment (retrieve with \code{comment()}).
+  tibbles (\code{encoder}, \code{decoder}). The settings used are saved as a comment (retrieve with
+  \code{comment()}).
 }
 \description{
 Unlike \code{\link{talkEmbed}}, which returns one embedding per whole audio

@@ -8,7 +8,8 @@ bibentry(
     person("Dhairya", "Umrania"),
     person("Adithya", "Ganesan"),
     person("Rajath", "Rao"),
-    person("Akshay", "Raghavan")
+    person("Akshay", "Raghavan"),
+    person("H. Andrew", "Schwartz")
   ),
   year    = 2026,
   note    = paste("R package version", meta$Version),

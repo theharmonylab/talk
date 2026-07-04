@@ -13,6 +13,8 @@ Authors@R: c(
     person("Rajath", "Rao", role = c("aut")
     ),
     person("Akshay", "Raghavan", role = c("aut")
+    ),
+    person("H. Andrew", "Schwartz", role = c("aut")
     )
     )
 Description: Link R with Transformers from Hugging Face to transform audio recordings to text or audio embeddings. For more information see  <https://www.r-talk.org>.

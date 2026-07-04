@@ -1,4 +1,14 @@
-#' Transform audio recordings to embeddings
+#' Transcribe audio recordings to text (speech-to-text)
+#'
+#' Transcribes audio recordings to plain text using Whisper. Use
+#' \code{talkText()} (or its alias \code{talkTranscribe()}) when you only
+#' need \emph{what} was said: it is simpler and considerably faster than
+#' \code{\link{talkTextDiarise}} / \code{\link{talkTranscribeDiarise}},
+#' which additionally identify \emph{who} speaks \emph{when} and therefore
+#' run the full speaker-diarisation pipeline. Typical uses are recordings
+#' with a single speaker, or analyses where speaker identity does not
+#' matter; for conversations where speaker turns are needed, use
+#' \code{talkTextDiarise()} instead.
 #'
 #' @param talk_filepaths (string) Path to a video file (.wav/) list of audio filepaths, each is embedded separately
 #' @param model shortcut name for Hugging Face pretained model. Full list https://huggingface.co/transformers/pretrained_models.html

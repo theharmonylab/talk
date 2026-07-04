@@ -97,6 +97,8 @@ wav_diarise <- system.file("extdata", "test_diarise.wav", package = "talk")
 
 #### talkText(): transcribe audio to text
 Transcribes an audio file to **text** (speech-to-text) using a Whisper model.
+Fast and simple — no speaker labels; for conversations where you need who
+says what, use `talkTextDiarise()` below.
 
 ```{r talktext, eval = evaluate}
 text <- talkText(
@@ -109,7 +111,9 @@ text
 #### talkEmbed(): mapping audio recordings to numbers using a HuggingFace language model
 The `talkEmbed()` function transforms an audio file into a **single embedding**
 (one numeric vector per file), which can be used in downstream tasks — for
-example with the `textTrain()` functions in the text-package.
+example with the `textTrain()` functions in the text-package. Fast and needs
+no diarisation; for one embedding per speaker turn, use `talkEmbedSegments()`
+below.
 
 ```{r talkembed, eval = evaluate}
 embeddings <- talkEmbed(

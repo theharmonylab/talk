@@ -9,6 +9,16 @@
   if (is.null(getOption("reticulate.use_managed_venv"))) {
     options(reticulate.use_managed_venv = FALSE)
   }
+
+  # Keep torch's inductor compile cache out of the session temp directory:
+  # otherwise it is left behind there (R CMD check flags it as "detritus in
+  # the temp directory", e.g. 'torchinductor_<user>'). A persistent per-user
+  # cache also speeds up repeated runs. The callr subprocesses inherit this
+  # environment variable from the session.
+  if (Sys.getenv("TORCHINDUCTOR_CACHE_DIR") == "") {
+    Sys.setenv(TORCHINDUCTOR_CACHE_DIR =
+                 file.path(tools::R_user_dir("talk", "cache"), "torchinductor"))
+  }
 }
 
 #' @importFrom utils packageVersion
