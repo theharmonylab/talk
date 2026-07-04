@@ -48,4 +48,6 @@ test_that("talkEmbed returns embeddings for an audio file", {
   testthat::expect_s3_class(emb_dec, "data.frame")
   testthat::expect_equal(dim(emb_dec), c(1L, 384L))
   testthat::expect_true(all(is.finite(unlist(emb_dec))))
+  testthat::expect_equal(emb_dec$Dim1, 0.8717901, tolerance = 0.0001)
+
 })
