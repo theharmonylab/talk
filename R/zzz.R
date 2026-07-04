@@ -68,8 +68,21 @@
     )
   )
 
+  # Auto-initialize a previously saved Python profile. This must never make
+  # the package unloadable: if the saved environment has been removed (e.g.
+  # during a reinstall), warn and continue so the user can still run
+  # talkrpp_install() / talkrpp_initialize() to repair it.
   if (isTRUE(check_talkrpp_python_options()$val == "talkrpp_condaenv")) {
-    talkrpp_initialize(check_env = FALSE)
+    tryCatch(
+      talkrpp_initialize(check_env = FALSE),
+      error = function(e) {
+        packageStartupMessage(
+          "Note: the saved talk Python environment could not be initialized (",
+          conditionMessage(e), ").\n",
+          "Run talkrpp_install() and/or talkrpp_initialize() to set it up again."
+        )
+      }
+    )
   }
 }
 

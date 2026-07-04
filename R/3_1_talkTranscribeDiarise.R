@@ -134,7 +134,7 @@ talkTranscribeDiarise <- function(
     )
   }
 
-  callr::r(
+  result <- callr::r(
     func = function(audio, output_dir, model_name, language, device,
                     stemming, suppress_numerals, batch_size, num_speakers,
                     oracle_num_speakers, vad_model, speaker_model,
@@ -211,6 +211,21 @@ talkTranscribeDiarise <- function(
     ),
     show = TRUE
   )
+
+  # A missing whisnemo module means the conda environment predates the full
+  # talk stack (e.g. it was created by an older talk version, when
+  # transcription and diarisation used separate environments). Point the user
+  # to the fix instead of only surfacing Python's cryptic error.
+  if (is.list(result) && identical(result$status, "error") &&
+      !is.null(result$error) && grepl("No module named", result$error)) {
+    message(
+      "The Python environment '", condaenv, "' does not contain the talk ",
+      "diarisation stack (", result$error, ").\n",
+      "Re-run talkrpp_install() to upgrade the environment, then try again."
+    )
+  }
+
+  result
 }
 
 #' @rdname talkTranscribeDiarise

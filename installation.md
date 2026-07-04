@@ -195,7 +195,31 @@ loading.)
    talkrpp_install()
    ```
 
-5. **Apple Silicon (MPS):** on real Apple hardware talk uses the MPS GPU
+5. **Old or duplicated conda installations** (typical symptoms:
+   `No module named 'whisnemo'`; `EnvironmentNameNotFound` during
+   `talkrpp_install()`; `No matching distribution found for torch==2.11.0`;
+   `talkrpp_uninstall()` failing to find the environment). A
+   `talkrpp_condaenv` created by an older talk version may use an old Python
+   (3.9) and may live in a *different* conda installation (e.g. a personal
+   `~/miniconda3`) than the one talk now uses (reticulate's miniconda). The
+   fix is to remove the old environment with the conda installation that owns
+   it, then reinstall:
+
+   ```
+   # in a terminal -- adjust the path to the conda that owns the old env
+   ~/miniconda3/bin/conda env remove -n talkrpp_condaenv -y
+   ```
+
+   ```r
+   # then, in R
+   talkrpp_install()
+   ```
+
+   `talk::list_talkrpp_envs()` shows which environments exist; the
+   registrations in `~/.conda/environments.txt` show which conda installation
+   each environment belongs to.
+
+6. **Apple Silicon (MPS):** on real Apple hardware talk uses the MPS GPU
    automatically where it is reliable; in virtualized macOS (e.g. CI runners)
    it falls back to CPU.
 

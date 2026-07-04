@@ -160,7 +160,16 @@ talkEmbedSegments <- function(
   )
 
   if (!is.null(result$status) && result$status == "error") {
-    stop("talkEmbedSegments failed: ", result$error)
+    hint <- if (!is.null(result$error) && grepl("No module named", result$error)) {
+      paste0(
+        "\nThe Python environment '", condaenv, "' does not contain the talk ",
+        "stack (it may have been created by an older talk version). ",
+        "Re-run talkrpp_install() to upgrade it."
+      )
+    } else {
+      ""
+    }
+    stop("talkEmbedSegments failed: ", result$error, hint)
   }
 
   emb <- result$embeddings
