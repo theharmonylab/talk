@@ -59,8 +59,7 @@ talkTextDiarise(
 
 \item{output_dir}{(string) Optional directory where transcript files
 (csv/txt/srt, see \code{output_formats}) are saved. Default NULL: no
-files are written -- the transcript is returned directly as a data.frame
-in \code{$transcript}.}
+files are written -- the transcript is only returned as a tibble.}
 
 \item{model_name}{(string) Whisper model name (e.g., \code{"medium.en"}). Options: \code{"tiny"}, \code{"base"}, \code{"small"}, \code{"medium"}, \code{"large"}.}
 
@@ -142,11 +141,10 @@ and only short status messages are shown. Set TRUE to stream the full
 backend output, e.g. when debugging.}
 }
 \value{
-A list with keys \code{transcript} (a data.frame with columns
-  \code{speaker}, \code{start_timestamp}, \code{end_timestamp} and
-  \code{message}), \code{output_files} (character vector of written file
-  paths; empty when \code{output_dir} is NULL) and \code{status}
-  (\code{"success"} or \code{"error"}).
+A tibble with one row per speaker turn and columns \code{speaker},
+  \code{start_timestamp}, \code{end_timestamp} and \code{message}. On
+  failure an error is raised (with a hint about the likely fix). The
+  settings used are saved as a comment (retrieve with \code{comment()}).
 }
 \description{
 Transcribes one or more audio recordings using Whisper and performs speaker
@@ -156,8 +154,8 @@ Requires the talk conda environment installed via \code{talkrpp_install()}.
 }
 \details{
 Transcript files (diarized CSVs, SRTs, or TXT) are written only when
-\code{output_dir} is provided; by default the transcript is only returned
-as a data.frame.
+\code{output_dir} is provided (the saved paths are then shown in a
+message); by default the transcript is only returned as a tibble.
 
 \strong{Devices and result correctness.} \code{"cpu"} always produces
 correct results and is the safe default on macOS. \code{"cuda"} (NVIDIA

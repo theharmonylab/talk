@@ -121,33 +121,31 @@ embeddings
 ```
 
 #### talkTranscribeDiarise(): transcribe and split by speaker
-Transcribes **and** diarises a recording — producing a transcript split by
-speaker and timestamped. Returns a list with `$transcript` (a data.frame),
-`$output_files`, and `$status`. By default no files are written — the
-transcript comes back as the data.frame; provide `output_dir` to also save
-csv/txt/srt transcript files.
+Transcribes **and** diarises a recording — returning a tibble with one row
+per speaker turn (`speaker`, `start_timestamp`, `end_timestamp`, `message`).
+By default no files are written; provide `output_dir` to also save csv/txt/srt
+transcript files.
 
 ```{r diarise, eval = evaluate}
-diar <- talkTranscribeDiarise(
+transcript <- talkTranscribeDiarise(
   audio        = wav_diarise,
   num_speakers = 2
 )
 
-diar$status
-diar$transcript
+transcript
 ```
 
 #### talkEmbedSegments(): one embedding per diarised segment
 Unlike `talkEmbed()` (one embedding per whole file), `talkEmbedSegments()`
 returns **one embedding per diarised segment**. It takes the audio plus a
-diarised transcript (e.g. `diar$transcript` above, or a CSV path). Two backends
+diarised transcript (e.g. the `transcript` above, or a CSV path). Two backends
 are available: Whisper (`"encoder"` / `"decoder"` / `"both"`) and WhiSPA.
 
 ```{r embed-segments, eval = evaluate}
 # Whisper encoder embeddings, one row per segment
 emb <- talkEmbedSegments(
   audio      = wav_diarise,
-  transcript = diar$transcript,   # accepts the diarised output directly, or a CSV path
+  transcript = transcript,   # accepts the diarised output directly, or a CSV path
   model      = "whisper",         # or "whispa"
   embeddings = "encoder"          # "encoder" / "decoder" / "both" (whisper only)
 )
@@ -156,7 +154,7 @@ emb
 # WhiSPA speech-psychological embeddings
 emb_whispa <- talkEmbedSegments(
   audio      = wav_diarise,
-  transcript = diar$transcript,
+  transcript = transcript,
   model      = "whispa"
 )
 ```

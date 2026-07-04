@@ -48,7 +48,7 @@ This you can use the talkTranscribe() function which will return the list of tra
 \item{logging_level}{(string) Set logging level, options: "critical", "error", "warning", "info", "debug".}
 }
 \value{
-A tibble with embeddings.
+A tibble with embeddings. The settings used are saved as a comment (retrieve with \code{comment()}).
 }
 \description{
 Transform audio recordings to embeddings

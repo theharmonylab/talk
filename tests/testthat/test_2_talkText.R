@@ -30,4 +30,5 @@ test_that("talkText transcribes audio to text", {
   )
 
   testthat::expect_equal(text_test[1], " Hello.")
+  testthat::expect_true(grepl("talkText", comment(text_test), fixed = TRUE))
 })

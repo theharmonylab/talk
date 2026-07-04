@@ -45,7 +45,7 @@ talkTranscribe(
 \item{logging_level}{(string) Set logging level, options: "critical", "error", "warning", "info", "debug".}
 }
 \value{
-A tibble with transcriptions.
+A tibble with transcriptions. The settings used are saved as a comment (retrieve with \code{comment()}).
 }
 \description{
 Transform audio recordings to embeddings

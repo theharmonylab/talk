@@ -148,28 +148,22 @@ jobs:
         run: |
           library(talk)
           wav <- system.file("extdata", "test_diarise.wav", package = "talk")
-          diar <- talk::talkTranscribeDiarise(audio = wav, model_name = "tiny.en", verbose = TRUE)
-          cat("diarise status:", diar$status, "\n")
+          transcript <- talk::talkTranscribeDiarise(audio = wav, model_name = "tiny.en", verbose = TRUE)
           cat("ffmpeg used:", Sys.which("ffmpeg"), "\n")
-          if (!identical(diar$status, "success")) {
-            cat("diarise error:", if (!is.null(diar$error)) diar$error else "(no error field)", "\n")
-          }
-          stopifnot(identical(diar$status, "success"),
-                    is.data.frame(diar$transcript),
-                    nrow(diar$transcript) > 0)
+          stopifnot(is.data.frame(transcript), nrow(transcript) > 0)
           # Linux runs without a system ffmpeg: assert the static fallback
           # (copied to tools::R_user_dir("talk", "cache")/bin) was used.
           if (Sys.info()[["sysname"]] == "Linux") {
             stopifnot(grepl("talk", Sys.which("ffmpeg"), fixed = TRUE))
           }
           emb <- talk::talkEmbedSegments(audio = wav,
-                                         transcript = diar$transcript,
+                                         transcript = transcript,
                                          model = "whisper",
                                          embeddings = "encoder",
                                          participant_only = FALSE,
                                          whisper_model_id = "openai/whisper-tiny",
                                          verbose = TRUE)
-          stopifnot(is.data.frame(emb), nrow(emb) == nrow(diar$transcript))
+          stopifnot(is.data.frame(emb), nrow(emb) == nrow(transcript))
           cat("talkEmbedSegments rows:", nrow(emb), "cols:", ncol(emb), "\n")
         shell: Rscript {0}
 

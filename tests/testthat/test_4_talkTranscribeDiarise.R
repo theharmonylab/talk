@@ -19,9 +19,11 @@ test_that("talkTranscribeDiarise transcribes and diarises audio", {
 
   # OMP/KMP environment variables are set by talk's .onAttach() (macOS) and
   # inherited by the diarise subprocess, so they need not be set here.
-  result <- talk::talkTranscribeDiarise(audio = wav_path, condaenv = envname)
+  transcript <- talk::talkTranscribeDiarise(audio = wav_path, condaenv = envname)
 
-  testthat::expect_equal(result$status, "success")
-  testthat::expect_s3_class(result$transcript, "data.frame")
-  testthat::expect_equal(result$transcript$message[1], " Hello, how are you doing?")
+  testthat::expect_s3_class(transcript, "data.frame")
+  testthat::expect_true(all(c("speaker", "start_timestamp", "end_timestamp", "message")
+                            %in% colnames(transcript)))
+  testthat::expect_equal(transcript$message[1], " Hello, how are you doing?")
+  testthat::expect_true(grepl("talkTranscribeDiarise", comment(transcript), fixed = TRUE))
 })

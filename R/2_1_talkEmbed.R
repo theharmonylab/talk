@@ -19,7 +19,8 @@
 #' @param hg_token (string) the token to access the gated model got in huggingface website
 #' @param trust_remote_code (boolean) use a model with custom code on the Huggingface Hub.
 #' @param logging_level (string) Set logging level, options: "critical", "error", "warning", "info", "debug".
-#' @return A tibble with embeddings.
+#' @return A tibble with embeddings. The settings used are saved as a comment (retrieve with
+#'   \code{comment()}).
 #' @examples
 #' # Transform audio recordings in the example dataset:
 #' # voice_data (included in talk-package), to embeddings.
@@ -50,7 +51,7 @@ talkEmbed <- function(
     trust_remote_code = FALSE,
     logging_level = 'warning'){
 
-
+  time_start <- Sys.time()
 
   reticulate::source_python(system.file("python",
                                         "huggingface_Interface4.py",
@@ -78,6 +79,16 @@ talkEmbed <- function(
   emb_tibble <- tibble::as_tibble(
     t(embeddings), # Transpose the vector into a single-row matrix
     .name_repair = ~ paste0("Dim", seq_along(embeddings)) # Assign column names
+  )
+
+  comment(emb_tibble) <- paste(
+    "Information about the embeddings. talkEmbed: ",
+    "model: ", model, " ; ",
+    "use_decoder: ", use_decoder, " ; ",
+    "device: ", device, " ; ",
+    "duration: ", sprintf("%.1f", as.numeric(difftime(Sys.time(), time_start, units = "secs"))), " secs ; ",
+    "talk_version: ", packageVersion("talk"), ".",
+    sep = ""
   )
 
   return(emb_tibble)

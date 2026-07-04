@@ -15,14 +15,20 @@
 ## Minor changes and fixes
 * Added function aliases: `talkTranscribe()` (same as `talkText()`) and
   `talkTextDiarise()` (same as `talkTranscribeDiarise()`).
+* `talkText()`, `talkEmbed()`, `talkTranscribeDiarise()` and
+  `talkEmbedSegments()` now save the settings used (model, device, key
+  parameters, duration and talk version) as a comment on the returned object,
+  retrievable with `comment()` -- matching the text package.
 * `talkTranscribeDiarise()` and `talkEmbedSegments()` gained a `verbose`
   argument (default `FALSE`): the technical Python backend output is now
   hidden by default and replaced by short status messages; errors are always
   shown.
-* `talkTranscribeDiarise()` no longer writes files by default: `output_dir`
-  now defaults to NULL (the transcript is returned as a data.frame), and no
-  temporary files (audio copy, timing logs) are left behind. Provide
-  `output_dir` to save csv/txt/srt transcript files.
+* `talkTranscribeDiarise()` now returns the transcript directly as a tibble
+  (previously a list with `$transcript`, `$output_files` and `$status`);
+  failures are signalled as R errors with actionable hints. It also no longer
+  writes files by default: `output_dir` defaults to NULL, and no temporary
+  files (audio copy, timing logs) are left behind. Provide `output_dir` to
+  save csv/txt/srt transcript files (saved paths are shown in a message).
 * The talk package now uses a **single conda environment** (`talkrpp_condaenv`)
   for all functions. `talkrpp_install()` installs the full stack (transcription,
   embeddings, diarisation and segment embeddings), and

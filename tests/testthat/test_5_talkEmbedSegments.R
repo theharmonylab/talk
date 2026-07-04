@@ -19,8 +19,8 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
 
   # OMP/KMP environment variables are set by talk's .onAttach() (macOS) and
   # inherited by the diarise/embed subprocess, so they need not be set here.
-  diar <- talk::talkTranscribeDiarise(audio = wav_path, condaenv = envname)
-  testthat::expect_equal(diar$status, "success")
+  transcript <- talk::talkTranscribeDiarise(audio = wav_path, condaenv = envname)
+  testthat::expect_s3_class(transcript, "data.frame")
 
   # Whisper encoder embeddings, one row per diarised segment.
   # participant_only = FALSE because the diarised transcript has no
@@ -30,7 +30,7 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
   # embeddings across segments). CPU matches MPS on real Apple hardware.
   emb <- talk::talkEmbedSegments(
     audio            = wav_path,
-    transcript       = diar$transcript,
+    transcript       = transcript,
     model            = "whisper",
     embeddings       = "encoder",
     participant_only = FALSE,
@@ -40,11 +40,12 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
   )
 
   testthat::expect_s3_class(emb, "data.frame")
-  testthat::expect_equal(nrow(emb), nrow(diar$transcript))
+  testthat::expect_equal(nrow(emb), nrow(transcript))
   testthat::expect_true(
     all(c("segment_id", "start_sec", "end_sec", "speaker") %in% colnames(emb))
   )
   testthat::expect_gt(ncol(emb), 4L)
+  testthat::expect_true(grepl("talkEmbedSegments", comment(emb), fixed = TRUE))
   testthat::expect_equal(
     emb$f00000_mea[1:5],
     c(-0.7631922, -0.5184633, -0.3283089, -0.8475273, -0.7014528),
@@ -54,7 +55,7 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
   # embeddings = "both" returns a named list of two data frames.
   emb_both <- talk::talkEmbedSegments(
     audio            = wav_path,
-    transcript       = diar$transcript,
+    transcript       = transcript,
     model            = "whisper",
     embeddings       = "both",
     participant_only = FALSE,
@@ -68,4 +69,5 @@ test_that("talkEmbedSegments returns segment-level embeddings", {
   testthat::expect_named(emb_both, c("encoder", "decoder"))
   testthat::expect_s3_class(emb_both$encoder, "data.frame")
   testthat::expect_s3_class(emb_both$decoder, "data.frame")
+  testthat::expect_true(grepl("talkEmbedSegments", comment(emb_both$encoder), fixed = TRUE))
 })

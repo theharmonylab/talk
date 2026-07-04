@@ -12,7 +12,7 @@
 #'
 #' @param audio (string) Path to a single audio file (e.g. \code{.wav}).
 #' @param transcript (string or data.frame) Diarized transcript: either a path
-#'   to a CSV, or a data.frame such as the \code{transcript} returned by
+#'   to a CSV, or the transcript tibble returned by
 #'   \code{\link{talkTranscribeDiarise}}. Must contain per-segment start/end
 #'   timestamps, and a \code{speaker_role} column if \code{participant_only=TRUE}.
 #' @param model (string) \code{"whisper"} or \code{"whispa"}.
@@ -20,7 +20,7 @@
 #'   \code{"decoder"}, or \code{"both"}. Ignored for \code{model="whispa"}.
 #' @param participant_only (logical) If TRUE, only segments with
 #'   \code{speaker_role == "participant"} are embedded. Defaults to FALSE
-#'   because the \code{transcript} returned by \code{\link{talkTranscribeDiarise}}
+#'   because the transcript returned by \code{\link{talkTranscribeDiarise}}
 #'   has no \code{speaker_role} column; set TRUE only with a transcript that
 #'   provides one.
 #' @param whisper_model_id (string) Optional override of the Whisper model id.
@@ -44,7 +44,8 @@
 #'
 #' @return A tibble of segment-level embeddings (one row per segment), or, for
 #'   \code{model="whisper"} with \code{embeddings="both"}, a named list of two
-#'   tibbles (\code{encoder}, \code{decoder}).
+#'   tibbles (\code{encoder}, \code{decoder}). The settings used are saved as a comment (retrieve with
+#'   \code{comment()}).
 #'
 #' @examples
 #' \dontrun{
@@ -52,7 +53,7 @@
 #' diar <- talkTranscribeDiarise(audio = wav_path)
 #' emb <- talkEmbedSegments(
 #'   audio = wav_path,
-#'   transcript = diar$transcript,
+#'   transcript = diar,
 #'   model = "whisper",
 #'   embeddings = "encoder"
 #' )
@@ -76,6 +77,8 @@ talkEmbedSegments <- function(
     device = NULL,
     condaenv = "talkrpp_condaenv",
     verbose = FALSE){
+
+  time_start <- Sys.time()
 
   embed_py <- system.file("python", "embed.py", package = "talk", mustWork = TRUE)
 
@@ -189,10 +192,34 @@ talkEmbedSegments <- function(
 
   emb <- result$embeddings
 
+  seg_comment <- paste(
+    "Information about the segment embeddings. talkEmbedSegments: ",
+    "model: ", model, " ; ",
+    "embeddings: ", embeddings, " ; ",
+    "participant_only: ", participant_only, " ; ",
+    if (model == "whispa") {
+      paste0("whispa_model_id: ", whispa_model_id, " ; ")
+    } else {
+      paste0("whisper_model_id: ",
+             if (is.null(whisper_model_id)) "backend default" else whisper_model_id,
+             " ; ")
+    },
+    "device: ", if (is.null(device)) "auto" else device, " ; ",
+    "duration: ", sprintf("%.1f", as.numeric(difftime(Sys.time(), time_start, units = "secs"))), " secs ; ",
+    "talk_version: ", packageVersion("talk"), ".",
+    sep = ""
+  )
+
   # model="whisper", embeddings="both" returns a named list (encoder/decoder).
   if (is.list(emb) && !is.data.frame(emb)) {
-    return(lapply(emb, tibble::as_tibble))
+    return(lapply(emb, function(x) {
+      x <- tibble::as_tibble(x)
+      comment(x) <- seg_comment
+      x
+    }))
   }
 
-  return(tibble::as_tibble(emb))
+  emb <- tibble::as_tibble(emb)
+  comment(emb) <- seg_comment
+  emb
 }

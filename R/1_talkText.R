@@ -9,7 +9,7 @@
 #' @param hg_token (string) The token to access the gated model got in huggingface website
 #' @param trust_remote_code (boolean) use a model with custom code on the Huggingface Hub.
 #' @param logging_level (string) Set logging level, options: "critical", "error", "warning", "info", "debug".
-#' @return A tibble with transcriptions.
+#' @return A tibble with transcriptions. The settings used are saved as a comment (retrieve with \code{comment()}).
 #' @examples
 #' # Transform audio recordings in text:
 #' # voice_data (included in talk-package), to embeddings.
@@ -38,7 +38,7 @@ talkText <- function(
     #language = 'en'
     ){
 
-
+  time_start <- Sys.time()
 
   reticulate::source_python(system.file("python",
                                         "huggingface_Interface4.py",
@@ -57,6 +57,15 @@ talkText <- function(
     trust_remote_code = trust_remote_code,
     logging_level = logging_level#,
     #language = language
+  )
+
+  comment(text) <- paste(
+    "Information about the transcription. talkText: ",
+    "model: ", model, " ; ",
+    "device: ", device, " ; ",
+    "duration: ", sprintf("%.1f", as.numeric(difftime(Sys.time(), time_start, units = "secs"))), " secs ; ",
+    "talk_version: ", packageVersion("talk"), ".",
+    sep = ""
   )
 
   return(text)

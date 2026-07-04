@@ -10,8 +10,7 @@
 #'   (e.g., \code{.wav}) or a vector of file paths. Each file is processed separately.
 #' @param output_dir (string) Optional directory where transcript files
 #'   (csv/txt/srt, see \code{output_formats}) are saved. Default NULL: no
-#'   files are written -- the transcript is returned directly as a data.frame
-#'   in \code{$transcript}.
+#'   files are written -- the transcript is only returned as a tibble.
 #' @param model_name (string) Whisper model name (e.g., \code{"medium.en"}). Options: \code{"tiny"}, \code{"base"}, \code{"small"}, \code{"medium"}, \code{"large"}.
 #' @param language (string) Language code (e.g., \code{"en"}, \code{"sv"}). If NULL, Whisper auto-detects the language.
 #' @param device (string) Device to run inference on: \code{"cuda"} (NVIDIA
@@ -73,16 +72,15 @@
 #'   and only short status messages are shown. Set TRUE to stream the full
 #'   backend output, e.g. when debugging.
 #'
-#' @return A list with keys \code{transcript} (a data.frame with columns
-#'   \code{speaker}, \code{start_timestamp}, \code{end_timestamp} and
-#'   \code{message}), \code{output_files} (character vector of written file
-#'   paths; empty when \code{output_dir} is NULL) and \code{status}
-#'   (\code{"success"} or \code{"error"}).
+#' @return A tibble with one row per speaker turn and columns \code{speaker},
+#'   \code{start_timestamp}, \code{end_timestamp} and \code{message}. On
+#'   failure an error is raised (with a hint about the likely fix). The
+#'   settings used are saved as a comment (retrieve with \code{comment()}).
 #'
 #' @details
 #' Transcript files (diarized CSVs, SRTs, or TXT) are written only when
-#' \code{output_dir} is provided; by default the transcript is only returned
-#' as a data.frame.
+#' \code{output_dir} is provided (the saved paths are then shown in a
+#' message); by default the transcript is only returned as a tibble.
 #'
 #' \strong{Devices and result correctness.} \code{"cpu"} always produces
 #' correct results and is the safe default on macOS. \code{"cuda"} (NVIDIA
@@ -129,6 +127,8 @@ talkTranscribeDiarise <- function(
     condaenv = "talkrpp_condaenv",
     verbose = FALSE
     ) {
+
+  time_start <- Sys.time()
 
   diarize_py <- system.file("python", "diarize.py", package = "talk", mustWork = TRUE)
 
@@ -232,31 +232,60 @@ talkTranscribeDiarise <- function(
     show = verbose
   )
 
-  if (is.list(result) && identical(result$status, "error") &&
-      !is.null(result$error)) {
-    if (grepl("No module named", result$error)) {
+  # Failures are signalled as R errors (with actionable hints), so the
+  # function can simply return the transcript itself.
+  if (is.list(result) && identical(result$status, "error")) {
+    err <- if (is.null(result$error)) "unknown error" else result$error
+    hint <- if (grepl("No module named", err)) {
       # A missing whisnemo module means the conda environment predates the
       # full talk stack (e.g. it was created by an older talk version, when
-      # transcription and diarisation used separate environments). Point the
-      # user to the fix instead of only surfacing Python's cryptic error.
-      message(
-        "The Python environment '", condaenv, "' does not contain the talk ",
-        "diarisation stack (", result$error, ").\n",
-        "Re-run talkrpp_install() to upgrade the environment, then try again."
+      # transcription and diarisation used separate environments).
+      paste0(
+        "\nThe Python environment '", condaenv, "' does not contain the talk ",
+        "diarisation stack; re-run talkrpp_install() to upgrade it."
       )
     } else if (!verbose) {
-      # With the backend output hidden, make sure the error still surfaces.
-      message(
-        "Diarisation failed: ", result$error, "\n",
-        "Re-run with verbose = TRUE to see the full backend output."
-      )
+      "\nRe-run with verbose = TRUE to see the full backend output."
+    } else {
+      ""
     }
-  } else if (!verbose && is.list(result) &&
-             identical(result$status, "success")) {
-    message("Done.")
+    stop("talkTranscribeDiarise() failed: ", err, hint, call. = FALSE)
   }
 
-  result
+  if (length(result$output_files) > 0) {
+    message("Transcript files saved:\n",
+            paste0("  ", unlist(result$output_files), collapse = "\n"))
+  }
+  if (!verbose) message("Done.")
+
+  if (is.null(result$transcript)) {
+    warning("No transcript could be returned (the run produced no CSV; ",
+            "include \"csv\" in output_formats).", call. = FALSE)
+    return(invisible(NULL))
+  }
+
+  transcript <- tibble::as_tibble(result$transcript)
+  comment(transcript) <- paste(
+    "Information about the transcript. talkTranscribeDiarise: ",
+    "model_name: ", model_name, " ; ",
+    "language: ", if (is.null(language)) "auto" else language, " ; ",
+    "device: ", device, " ; ",
+    "stemming: ", stemming, " ; ",
+    "suppress_numerals: ", suppress_numerals, " ; ",
+    "num_speakers: ", num_speakers, " ; ",
+    "oracle_num_speakers: ", oracle_num_speakers, " ; ",
+    "vad_model: ", vad_model, " ; ",
+    "speaker_model: ", speaker_model, " ; ",
+    "onset: ", onset, " ; ",
+    "offset: ", offset, " ; ",
+    "pad_offset: ", pad_offset, " ; ",
+    "domain_type: ", domain_type, " ; ",
+    "remove_stutters: ", remove_stutters, " ; ",
+    "duration: ", sprintf("%.1f", as.numeric(difftime(Sys.time(), time_start, units = "secs"))), " secs ; ",
+    "talk_version: ", packageVersion("talk"), ".",
+    sep = ""
+  )
+  transcript
 }
 
 #' @rdname talkTranscribeDiarise

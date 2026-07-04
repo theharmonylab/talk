@@ -23,7 +23,7 @@ talkEmbedSegments(
 \item{audio}{(string) Path to a single audio file (e.g. \code{.wav}).}
 
 \item{transcript}{(string or data.frame) Diarized transcript: either a path
-to a CSV, or a data.frame such as the \code{transcript} returned by
+to a CSV, or the transcript tibble returned by
 \code{\link{talkTranscribeDiarise}}. Must contain per-segment start/end
 timestamps, and a \code{speaker_role} column if \code{participant_only=TRUE}.}
 
@@ -34,7 +34,7 @@ timestamps, and a \code{speaker_role} column if \code{participant_only=TRUE}.}
 
 \item{participant_only}{(logical) If TRUE, only segments with
 \code{speaker_role == "participant"} are embedded. Defaults to FALSE
-because the \code{transcript} returned by \code{\link{talkTranscribeDiarise}}
+because the transcript returned by \code{\link{talkTranscribeDiarise}}
 has no \code{speaker_role} column; set TRUE only with a transcript that
 provides one.}
 
@@ -61,7 +61,7 @@ stack (including whisnemo[embed] and WhiSPA). Default
 \value{
 A tibble of segment-level embeddings (one row per segment), or, for
   \code{model="whisper"} with \code{embeddings="both"}, a named list of two
-  tibbles (\code{encoder}, \code{decoder}).
+  tibbles (\code{encoder}, \code{decoder}). The settings used are saved as a comment (retrieve with \code{comment()}).
 }
 \description{
 Unlike \code{\link{talkEmbed}}, which returns one embedding per whole audio
@@ -81,7 +81,7 @@ wav_path <- system.file("extdata", "test_short.wav", package = "talk")
 diar <- talkTranscribeDiarise(audio = wav_path)
 emb <- talkEmbedSegments(
   audio = wav_path,
-  transcript = diar$transcript,
+  transcript = diar,
   model = "whisper",
   embeddings = "encoder"
 )

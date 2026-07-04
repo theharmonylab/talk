@@ -34,4 +34,5 @@ test_that("talkEmbed returns embeddings for an audio file", {
   testthat::expect_equal(emb_test$Dim1, -0.1984932, tolerance = 0.0001)
   testthat::expect_equal(emb_test$Dim2, -1.0071950, tolerance = 0.0001)
   testthat::expect_equal(emb_test$Dim3,  0.8974844, tolerance = 0.0001)
+  testthat::expect_true(grepl("talkEmbed", comment(emb_test), fixed = TRUE))
 })
