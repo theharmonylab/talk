@@ -11,54 +11,22 @@ managed automatically in a conda environment.
 1. Install [R](https://cran.r-project.org/) and
    [RStudio](https://posit.co/download/rstudio-desktop/).
 
-#### Install and initialize talk
+2. In R, install talk:
 
-In R:
+   ```r
+   # install.packages("devtools")
+   devtools::install_github("theharmonylab/talk")
+   ```
 
-```r
-# install.packages("devtools")
-devtools::install_github("theharmonylab/talk")
-```
+3. Install and activate the Python backend:
 
-Then install and activate the Python backend:
+   ```r
+   library(talk)
 
-```r
-library(talk)
+   talkrpp_install()
 
-# Installs a single conda environment ("talkrpp_condaenv") containing the
-# full stack: transcription, embeddings, diarisation and segment embeddings.
-# This also checks your system dependencies and reports anything missing --
-# including ffmpeg, for which a static fallback is installed automatically.
-talkrpp_install()
-
-# Activate the environment for this and future sessions
-talkrpp_initialize(save_profile = TRUE)
-```
-
-Test the installation:
-
-```r
-library(talk)
-
-wav_path <- system.file("extdata", "test_short.wav", package = "talk")
-
-talkText(talk_filepaths = wav_path)
-#> [1] " Hello."
-```
-
-#### Optional: system ffmpeg
-
-talk installs a static ffmpeg automatically, so this is not required. If you
-prefer a system-wide ffmpeg, open PowerShell and run (with
-[Chocolatey](https://chocolatey.org/)):
-
-```
-choco install ffmpeg
-```
-
-or download it from [ffmpeg.org](https://ffmpeg.org/download.html) and add it
-to your PATH. (Do not install ffmpeg with conda — conda's ffmpeg breaks
-torchaudio's audio loading.)
+   talkrpp_initialize(save_profile = TRUE)
+   ```
 
 ### MacOS
 
@@ -66,53 +34,22 @@ torchaudio's audio loading.)
    [RStudio](https://posit.co/download/rstudio-desktop/). On Apple Silicon
    (M1–M4), make sure to install the *arm64* build of R.
 
-#### Install and initialize talk
+2. In R, install talk:
 
-In R:
+   ```r
+   # install.packages("devtools")
+   devtools::install_github("theharmonylab/talk")
+   ```
 
-```r
-# install.packages("devtools")
-devtools::install_github("theharmonylab/talk")
-```
+3. Install and activate the Python backend:
 
-Then install and activate the Python backend:
+   ```r
+   library(talk)
 
-```r
-library(talk)
+   talkrpp_install()
 
-# Installs a single conda environment ("talkrpp_condaenv") containing the
-# full stack: transcription, embeddings, diarisation and segment embeddings.
-# This also checks your system dependencies and reports anything missing --
-# including ffmpeg, for which a static fallback is installed automatically.
-talkrpp_install()
-
-# Activate the environment for this and future sessions
-talkrpp_initialize(save_profile = TRUE)
-```
-
-Test the installation:
-
-```r
-library(talk)
-
-wav_path <- system.file("extdata", "test_short.wav", package = "talk")
-
-talkText(talk_filepaths = wav_path)
-#> [1] " Hello."
-```
-
-#### Optional: system ffmpeg
-
-talk installs a static ffmpeg automatically, so this is not required. If you
-prefer a system-wide ffmpeg, install [Homebrew](https://brew.sh/) (if you do
-not have it) and run in the Terminal:
-
-```
-brew install ffmpeg
-```
-
-(Do not install ffmpeg with conda — conda's ffmpeg breaks torchaudio's audio
-loading.)
+   talkrpp_initialize(save_profile = TRUE)
+   ```
 
 ### Linux
 
@@ -128,66 +65,37 @@ loading.)
    sudo apt-get install -y libcurl4-openssl-dev libssl-dev libxml2-dev
    ```
 
-   (`talkrpp_install()` can also install these automatically when root/sudo
-   is available — but they are typically needed already to install devtools,
-   so running the command above first is the reliable path.)
+3. In R, install talk:
 
-#### Install and initialize talk
+   ```r
+   # install.packages("devtools")
+   devtools::install_github("theharmonylab/talk")
+   ```
 
-In R:
+4. Install and activate the Python backend:
 
-```r
-# install.packages("devtools")
-devtools::install_github("theharmonylab/talk")
-```
+   ```r
+   library(talk)
 
-Then install and activate the Python backend:
+   talkrpp_install()
 
-```r
-library(talk)
-
-# Installs a single conda environment ("talkrpp_condaenv") containing the
-# full stack: transcription, embeddings, diarisation and segment embeddings.
-# This also checks your system dependencies and reports anything missing --
-# including ffmpeg, for which a static fallback is installed automatically.
-talkrpp_install()
-
-# Activate the environment for this and future sessions
-talkrpp_initialize(save_profile = TRUE)
-```
-
-Test the installation:
-
-```r
-library(talk)
-
-wav_path <- system.file("extdata", "test_short.wav", package = "talk")
-
-talkText(talk_filepaths = wav_path)
-#> [1] " Hello."
-```
-
-#### Optional: system ffmpeg
-
-talk installs a static ffmpeg automatically, so this is not required. If you
-prefer a system-wide ffmpeg (Ubuntu/Debian):
-
-```
-sudo apt-get install -y ffmpeg
-```
-
-(Do not install ffmpeg with conda — conda's ffmpeg breaks torchaudio's audio
-loading.)
+   talkrpp_initialize(save_profile = TRUE)
+   ```
 
 ### Troubleshooting
 
 1. **See which Python environments exist:** `talk::list_talkrpp_envs()`.
 2. **"Python already initialized" error:** restart R, then call
    `talkrpp_initialize()` before any other Python-using code.
-3. **ffmpeg problems:** talk finds a system ffmpeg automatically (also in
-   locations missing from RStudio's PATH, such as `/opt/homebrew/bin`) and
-   otherwise uses the static ffmpeg installed by `talkrpp_install()`. If
-   ffmpeg still cannot be found, re-run `talkrpp_install()`.
+3. **ffmpeg:** no action is needed — talk finds a system ffmpeg automatically
+   (also in locations missing from RStudio's PATH, such as
+   `/opt/homebrew/bin`) and otherwise uses the static ffmpeg installed by
+   `talkrpp_install()`. If you prefer a system-wide ffmpeg, install it with
+   your system's package manager (`brew install ffmpeg` on macOS,
+   `sudo apt-get install -y ffmpeg` on Ubuntu/Debian, `choco install ffmpeg`
+   on Windows) — but do **not** install ffmpeg with conda, whose ffmpeg
+   breaks torchaudio's audio loading. If ffmpeg still cannot be found,
+   re-run `talkrpp_install()`.
 4. **Reinstall the environment from scratch:**
 
    ```r
