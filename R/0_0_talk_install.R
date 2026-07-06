@@ -35,6 +35,14 @@ conda_args <- reticulate:::conda_args
 #' @param bin character; e.g., "python", only for virtualenvironment installation
 #' @param envname character; name of the conda-environment to install talk required python packages.
 #'   Default is "talkrpp_condaenv".
+#' @param include_text logical; if TRUE (the default), additionally install
+#'   the Python packages used by the text package (sentence-transformers,
+#'   flair, bertopic, umap-learn, hdbscan, evaluate, jsonschema), so that the
+#'   environment serves both packages: after
+#'   \code{textrpp_initialize(condaenv = "talkrpp_condaenv", save_profile = TRUE)}
+#'   the text package uses it too. This step is non-fatal -- if it fails, talk
+#'   itself is still fully installed. Set FALSE for a leaner, talk-only
+#'   environment.
 #' @param prompt logical; ask whether to proceed during the installation
 #' @examples
 #' \dontrun{
@@ -54,7 +62,8 @@ talkrpp_install <- function(
     envname = "talkrpp_condaenv",
     pip = TRUE,
     python_path = NULL,
-    prompt = TRUE) {
+    prompt = TRUE,
+    include_text = TRUE) {
 
   # The talk package uses a SINGLE conda environment that holds the full stack
   # (transcription, embeddings, diarisation and segment embeddings), so
@@ -118,7 +127,9 @@ talkrpp_install <- function(
     }
 
     # process the installation of talk required python packages
-    process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
+    process_talkrpp_diarize_installation(conda, python_version, prompt,
+                                         envname = envname,
+                                         include_text = include_text)
 
     # Windows installation
   } else {
@@ -147,7 +158,9 @@ talkrpp_install <- function(
       reticulate::install_miniconda(update = update_conda, force = force_conda)
     }
     # process the installation of talk required python packages
-    process_talkrpp_diarize_installation(conda, python_version, prompt, envname = envname)
+    process_talkrpp_diarize_installation(conda, python_version, prompt,
+                                         envname = envname,
+                                         include_text = include_text)
   }
 
   # If no system ffmpeg was found, activate the static fallback installed above.
@@ -493,7 +506,8 @@ install_rust_if_needed <- function(prompt = TRUE) {
 process_talkrpp_diarize_installation <- function(conda,
                                                   python_version,
                                                   prompt = TRUE,
-                                                  envname = "talkrpp_condaenv") {
+                                                  envname = "talkrpp_condaenv",
+                                                  include_text = TRUE) {
   conda_envs <- reticulate::conda_list(conda = conda)
   if (prompt) {
     ans <- utils::menu(c("Confirm", "Cancel"), title = "Confirm that a new conda environment will be set up.")
@@ -566,6 +580,31 @@ process_talkrpp_diarize_installation <- function(conda,
   # libraries to the environment, so torchaudio is unaffected.
   message("Installing imageio-ffmpeg (static ffmpeg fallback)...\n")
   reticulate::conda_install(envname, "imageio-ffmpeg", pip = TRUE, conda = conda)
+
+  # Step 5: the Python packages used by the text package, so the environment
+  # serves both text and talk. Installed under the same constraints so talk's
+  # pinned stack (torch/numpy/transformers/NeMo) is not disturbed -- verified
+  # to resolve cleanly against them. Non-fatal: talk must remain fully
+  # installed even if a text dependency fails to resolve on some platform.
+  if (include_text) {
+    text_packages <- c("sentence-transformers", "flair", "bertopic",
+                       "umap-learn", "hdbscan", "evaluate", "jsonschema")
+    message("Installing text-package Python dependencies (include_text = TRUE)...\n")
+    tryCatch(
+      reticulate::conda_install(envname, text_packages, pip = TRUE, conda = conda,
+                                pip_options = c("-c", whisnemo_constraints)),
+      error = function(e) {
+        warning(
+          "The text-package Python dependencies could not be installed; ",
+          "talk itself is fully installed and functional. To use the text ",
+          "package in this environment, re-run talkrpp_install() later or ",
+          "install text's dependencies with text::textrpp_install(). Error: ",
+          conditionMessage(e),
+          call. = FALSE
+        )
+      }
+    )
+  }
 }
 
 

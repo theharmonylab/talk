@@ -25,6 +25,16 @@
   error message otherwise.
 
 ## Minor changes and fixes
+* `talkrpp_install()` gained `include_text` (default TRUE): additionally
+  installs the text package's Python dependencies, so the talk environment
+  also serves the text package -- enabling both packages in the same R
+  session. This step is non-fatal (talk installs fully even if it fails);
+  set `include_text = FALSE` for a leaner, talk-only environment.
+* `talkTranscribeDiarise()` and `talkEmbedSegments()` default their
+  `condaenv` to the environment saved by
+  `talkrpp_initialize(save_profile = TRUE)`, enabling a shared environment
+  with the text package (e.g. `talkrpp_install(envname = "text_talk")`, then
+  initialize both packages to it).
 * Added function aliases: `talkTranscribe()` (same as `talkText()`) and
   `talkTextDiarise()` (same as `talkTranscribeDiarise()`).
 * `talkText()`, `talkEmbed()`, `talkTranscribeDiarise()` and

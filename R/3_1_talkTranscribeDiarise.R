@@ -67,8 +67,13 @@
 #' @param stutter_threshold (numeric) Similarity (0-1) above which adjacent
 #'   words are treated as repetitions when \code{remove_stutters = TRUE};
 #'   higher values remove only near-identical repeats. Default is 0.8.
-#' @param condaenv (string) Name of the conda environment with the talk stack installed.
-#'   Default is \code{"talkrpp_condaenv"} (installed by \code{talkrpp_install()}).
+#' @param condaenv (string) Name of the conda environment with the talk stack
+#'   installed. Defaults to the environment saved by
+#'   \code{talkrpp_initialize(save_profile = TRUE)} (the
+#'   \code{"talkrpp_condaenv"} option), falling back to
+#'   \code{"talkrpp_condaenv"} -- so a shared environment (e.g.
+#'   \code{"text_talk"}) only needs to be set once via
+#'   \code{talkrpp_initialize()}.
 #' @param verbose (logical) If FALSE (default), the technical output from the
 #'   Python backend (model-loading logs, progress bars, warnings) is hidden
 #'   and only short status messages are shown. Set TRUE to stream the full
@@ -127,7 +132,7 @@ talkTranscribeDiarise <- function(
     output_formats = "csv",
     remove_stutters = FALSE,
     stutter_threshold = 0.8,
-    condaenv = "talkrpp_condaenv",
+    condaenv = getOption("talkrpp_condaenv", "talkrpp_condaenv"),
     verbose = FALSE
     ) {
 

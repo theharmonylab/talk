@@ -25,7 +25,7 @@ talkTranscribeDiarise(
   output_formats = "csv",
   remove_stutters = FALSE,
   stutter_threshold = 0.8,
-  condaenv = "talkrpp_condaenv",
+  condaenv = getOption("talkrpp_condaenv", "talkrpp_condaenv"),
   verbose = FALSE
 )
 
@@ -49,7 +49,7 @@ talkTextDiarise(
   output_formats = "csv",
   remove_stutters = FALSE,
   stutter_threshold = 0.8,
-  condaenv = "talkrpp_condaenv",
+  condaenv = getOption("talkrpp_condaenv", "talkrpp_condaenv"),
   verbose = FALSE
 )
 }
@@ -134,8 +134,13 @@ research. Applied to the CSV output.}
 words are treated as repetitions when \code{remove_stutters = TRUE};
 higher values remove only near-identical repeats. Default is 0.8.}
 
-\item{condaenv}{(string) Name of the conda environment with the talk stack installed.
-Default is \code{"talkrpp_condaenv"} (installed by \code{talkrpp_install()}).}
+\item{condaenv}{(string) Name of the conda environment with the talk stack
+installed. Defaults to the environment saved by
+\code{talkrpp_initialize(save_profile = TRUE)} (the
+\code{"talkrpp_condaenv"} option), falling back to
+\code{"talkrpp_condaenv"} -- so a shared environment (e.g.
+\code{"text_talk"}) only needs to be set once via
+\code{talkrpp_initialize()}.}
 
 \item{verbose}{(logical) If FALSE (default), the technical output from the
 Python backend (model-loading logs, progress bars, warnings) is hidden

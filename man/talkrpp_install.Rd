@@ -14,7 +14,8 @@ talkrpp_install(
   envname = "talkrpp_condaenv",
   pip = TRUE,
   python_path = NULL,
-  prompt = TRUE
+  prompt = TRUE,
+  include_text = TRUE
 )
 
 talkrpp_install_virtualenv(
@@ -54,6 +55,15 @@ package manager with conda-forge channel will be used for installing rpp.}
 \item{python_path}{character; path to Python only for virtualenvironment installation}
 
 \item{prompt}{logical; ask whether to proceed during the installation}
+
+\item{include_text}{logical; if TRUE (the default), additionally install
+the Python packages used by the text package (sentence-transformers,
+flair, bertopic, umap-learn, hdbscan, evaluate, jsonschema), so that the
+environment serves both packages: after
+\code{textrpp_initialize(condaenv = "talkrpp_condaenv", save_profile = TRUE)}
+the text package uses it too. This step is non-fatal -- if it fails, talk
+itself is still fully installed. Set FALSE for a leaner, talk-only
+environment.}
 
 \item{pip_version}{character;}
 

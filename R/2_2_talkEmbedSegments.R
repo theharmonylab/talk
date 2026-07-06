@@ -37,10 +37,13 @@
 #'   hardware, else \code{"cpu"}. On virtualized macOS (VMs/CI runners) MPS can
 #'   silently produce invalid embeddings, so it is never auto-selected there
 #'   (and explicitly requesting it triggers a warning).
-#' @param condaenv (string) Name of the conda environment that holds the talk
-#'   stack (including whisnemo[embed] and WhiSPA). Default
-#'   \code{"talkrpp_condaenv"}, the single environment installed by
-#'   \code{talkrpp_install()}.
+#' @param condaenv (string) Name of the conda environment with the talk stack
+#'   installed. Defaults to the environment saved by
+#'   \code{talkrpp_initialize(save_profile = TRUE)} (the
+#'   \code{"talkrpp_condaenv"} option), falling back to
+#'   \code{"talkrpp_condaenv"} -- so a shared environment (e.g.
+#'   \code{"text_talk"}) only needs to be set once via
+#'   \code{talkrpp_initialize()}.
 #' @param verbose (logical) If FALSE (default), the technical output from the
 #'   Python backend (model-loading logs, progress bars, warnings) is hidden
 #'   and only short status messages are shown. Set TRUE to stream the full
@@ -93,7 +96,7 @@ talkEmbedSegments <- function(
     whispa_repo_path = NULL,
     output_dir = NULL,
     device = NULL,
-    condaenv = "talkrpp_condaenv",
+    condaenv = getOption("talkrpp_condaenv", "talkrpp_condaenv"),
     verbose = FALSE){
 
   time_start <- Sys.time()

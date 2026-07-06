@@ -135,6 +135,20 @@ If problems persist, please look through the
 [closed GitHub issues](https://github.com/theharmonylab/talk/issues?q=is%3Aissue)
 or open a new issue.
 
+## Using talk and text together
+
+The environment installed by `talkrpp_install()` also includes the Python
+packages used by the [text](https://www.r-text.org/) package, so both
+packages can be used in the same R session. To point text at it (once):
+
+```r
+text::textrpp_initialize(condaenv = "talkrpp_condaenv", save_profile = TRUE)
+```
+
+After this, all talk and text functions use the shared environment
+automatically. (If you prefer a leaner, talk-only environment, install with
+`talkrpp_install(include_text = FALSE)`.)
+
 ## Try talk in the browser
 
 💡 *Want to try talk without installing anything?* Open our
