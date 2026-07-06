@@ -2,6 +2,20 @@
 
 <!-- README.md is generated from README.Rmd. Please edit that file -->
 
+# talk 0.7
+
+## Major changes
+* `talkText()` now returns the documented tibble (columns `file_path` and
+  `transcription`) instead of a bare character vector. With several files, a
+  file that fails to transcribe yields `NA` at its position (with a warning)
+  instead of being silently dropped and shifting the remaining results.
+  `talkEmbed(audio_transcriptions = ...)` accepts this tibble directly.
+
+## Minor changes and fixes
+* `talkText()` and `talkEmbed()` cache the loaded model between calls in a
+  session, so transcribing or embedding files one call at a time no longer
+  reloads the model each time.
+
 # talk 0.6
 
 ## Major changes

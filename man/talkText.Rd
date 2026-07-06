@@ -45,7 +45,11 @@ talkTranscribe(
 \item{logging_level}{(string) Set logging level, options: "critical", "error", "warning", "info", "debug".}
 }
 \value{
-A tibble with transcriptions. The settings used are saved as a comment (retrieve with \code{comment()}).
+A tibble with one row per audio file and columns \code{file_path}
+and \code{transcription}. If a file fails to transcribe, its row gets
+\code{NA} in \code{transcription} (with a warning), so positions always
+match the input files. The settings used are saved as a comment
+(retrieve with \code{comment()}).
 }
 \description{
 Transcribes audio recordings to plain text using Whisper. Use

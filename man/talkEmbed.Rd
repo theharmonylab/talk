@@ -23,8 +23,11 @@ talkEmbed(
 
 \item{model}{shortcut name for Hugging Face pretained model. Full list https://huggingface.co/transformers/pretrained_models.html}
 
-\item{audio_transcriptions}{(strings) audio_transcriptions : list
-(optional) list of audio transcriptions, to be used for Whisper's decoder-based embeddings}
+\item{audio_transcriptions}{(character vector or tibble) Optional
+transcriptions of the audio files, used for Whisper's decoder-based
+embeddings: either a character vector (one transcription per file) or the
+tibble returned by \code{\link{talkText}} (its \code{transcription} column
+is used).}
 
 \item{use_decoder}{(boolean) whether to use Whisper's decoder last hidden state representation.
 If you just want embeddings from a given audio file where vocal acoustics and sound related harmonics are more important to you, then you should

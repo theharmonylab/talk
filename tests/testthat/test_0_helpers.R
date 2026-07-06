@@ -229,4 +229,17 @@ test_that("talkText and talkEmbed validate input early", {
     talk::talkEmbed(wav, use_decoder = TRUE),
     regexp = "audio_transcriptions"
   )
+  # a transcript data.frame must have a `transcription` column (as returned
+  # by talkText())
+  testthat::expect_error(
+    talk::talkEmbed(wav, use_decoder = TRUE,
+                    audio_transcriptions = data.frame(x = "hi")),
+    regexp = "transcription"
+  )
+  # NA transcriptions (failed files) are rejected for the decoder
+  testthat::expect_error(
+    talk::talkEmbed(wav, use_decoder = TRUE,
+                    audio_transcriptions = NA_character_),
+    regexp = "NA"
+  )
 })

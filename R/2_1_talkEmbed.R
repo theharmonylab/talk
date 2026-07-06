@@ -14,8 +14,11 @@
 #'
 #' @param talk_filepaths (string) path to a video file (.wav/) list of audio filepaths, each is embedded separately
 #' @param model shortcut name for Hugging Face pretained model. Full list https://huggingface.co/transformers/pretrained_models.html
-#' @param audio_transcriptions  (strings) audio_transcriptions : list
-#' (optional) list of audio transcriptions, to be used for Whisper's decoder-based embeddings
+#' @param audio_transcriptions (character vector or tibble) Optional
+#' transcriptions of the audio files, used for Whisper's decoder-based
+#' embeddings: either a character vector (one transcription per file) or the
+#' tibble returned by \code{\link{talkText}} (its \code{transcription} column
+#' is used).
 #' @param use_decoder (boolean) whether to use Whisper's decoder last hidden state representation.
 #' If you just want embeddings from a given audio file where vocal acoustics and sound related harmonics are more important to you, then you should
 #' have `use_decoder`=FALSE.
@@ -73,6 +76,15 @@ talkEmbed <- function(
     stop("Audio file(s) not found: ", paste(missing_files, collapse = ", "),
          call. = FALSE)
   }
+  # Accept the tibble returned by talkText()/talkTranscribe() directly.
+  if (is.data.frame(audio_transcriptions)) {
+    if (!"transcription" %in% names(audio_transcriptions)) {
+      stop("`audio_transcriptions` is a data.frame without a `transcription` ",
+           "column; pass the tibble returned by talkText() or a character ",
+           "vector.", call. = FALSE)
+    }
+    audio_transcriptions <- audio_transcriptions$transcription
+  }
   # The decoder consumes both audio and text, so transcriptions are required.
   # (The R default "None" is a string and would slip past the backend's own
   # None-check, producing empty output.)
@@ -82,6 +94,11 @@ talkEmbed <- function(
          "takes both audio and text.\nFirst transcribe, e.g.\n",
          "  transcriptions <- talkTranscribe(talk_filepaths)\n",
          "then pass audio_transcriptions = transcriptions.", call. = FALSE)
+  }
+  if (isTRUE(use_decoder) && anyNA(audio_transcriptions)) {
+    stop("`audio_transcriptions` contains NA (a file that failed to ",
+         "transcribe); the decoder needs a transcription for every file.",
+         call. = FALSE)
   }
 
   reticulate::source_python(system.file("python",

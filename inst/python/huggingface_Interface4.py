@@ -153,6 +153,14 @@ def set_tokenizer_parallelism(tokenizer_parallelism):
         os.environ["TOKENIZERS_PARALLELISM"] = "false"
 
 
+# Cache the most recently loaded audio model, so repeated R calls (e.g.
+# talkText() on one file at a time) do not re-instantiate the weights. The
+# guard keeps the cache alive when R re-sources this file via
+# reticulate::source_python(), which re-executes the module top level.
+if "_AUDIO_MODEL_CACHE" not in globals():
+    _AUDIO_MODEL_CACHE = {"key": None, "value": None}
+
+
 def get_audio_model(model, processor_only=False, config_only=False, hg_gated=False, hg_token="", trust_remote_code=False, for_transcription=False):
     """
     Get audio model and tokenizer from model string
@@ -175,8 +183,11 @@ def get_audio_model(model, processor_only=False, config_only=False, hg_gated=Fal
     """
     if hg_gated:
         set_hg_gated_access(access_token=hg_token)
-    else: 
+    else:
         pass
+    cache_key = (model, bool(for_transcription), bool(trust_remote_code))
+    if not config_only and not processor_only and _AUDIO_MODEL_CACHE["key"] == cache_key:
+        return _AUDIO_MODEL_CACHE["value"]
     config = AutoConfig.from_pretrained(model)
     if not config_only:
         processor = AutoProcessor.from_pretrained(model)
@@ -185,12 +196,14 @@ def get_audio_model(model, processor_only=False, config_only=False, hg_gated=Fal
             transformer_model = WhisperForConditionalGeneration.from_pretrained(model, config=config, trust_remote_code=trust_remote_code)
         else:
             transformer_model = AutoModel.from_pretrained(model, config=config, trust_remote_code=trust_remote_code)
-            
+
     if config_only:
         return config
     elif processor_only:
         return processor
-    else:     
+    else:
+        _AUDIO_MODEL_CACHE["key"] = cache_key
+        _AUDIO_MODEL_CACHE["value"] = (config, processor, transformer_model)
         return config, processor, transformer_model
     
 
@@ -308,20 +321,22 @@ def hgTransformerTranscribe(
     
     config, processor, transformer_model = get_audio_model(model, hg_gated=hg_gated, hg_token=hg_token, trust_remote_code=trust_remote_code, for_transcription=True)
 
-    if device != 'cpu':
-        transformer_model.to(device)
+    # Always move: the cached model may still sit on another device.
+    transformer_model.to(device)
     transformer_model.eval()
 
     all_transcripts = []
 
     for audio_filepath in audio_filepaths:
-        waveform = preprocess_audio(audio_filepath)
-        audio_inputs = processor(waveform.squeeze(), sampling_rate=16000, return_tensors="pt")
-        
-        if device != 'cpu':
-            audio_inputs = audio_inputs.to(device)
-
+        # The whole per-file pipeline is guarded (loading included), so one
+        # bad file cannot abort the remaining files.
         try:
+            waveform = preprocess_audio(audio_filepath)
+            audio_inputs = processor(waveform.squeeze(), sampling_rate=16000, return_tensors="pt")
+
+            if device != 'cpu':
+                audio_inputs = audio_inputs.to(device)
+
             with torch.no_grad():
                 # Generate transcription
                 generated_ids = transformer_model.generate(**audio_inputs)
@@ -333,7 +348,10 @@ def hgTransformerTranscribe(
         except Exception as e:
             print(f'\"{audio_filepath}\" failed with the following error:')
             print(Warning(e))
-    
+            # Keep positions aligned with the input files: a failed file
+            # yields None (NA in R) instead of silently shifting the rest.
+            all_transcripts.append(None)
+
     if hg_gated:
         del_hg_gated_access()
     return all_transcripts
@@ -404,8 +422,8 @@ def hgTransformerGetEmbedding(
 
     config, processor, transformer_model = get_audio_model(model, hg_gated=hg_gated, hg_token=hg_token, trust_remote_code=trust_remote_code)
 
-    if device != 'cpu':
-        transformer_model.to(device)
+    # Always move: the cached model may still sit on another device.
+    transformer_model.to(device)
     transformer_model.eval()
 
     all_embs = []

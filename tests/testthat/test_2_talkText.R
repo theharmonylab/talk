@@ -29,6 +29,10 @@ test_that("talkText transcribes audio to text", {
     model          = "openai/whisper-tiny"
   )
 
-  testthat::expect_equal(text_test[1], " Hello.")
+  testthat::expect_s3_class(text_test, "data.frame")
+  testthat::expect_equal(names(text_test), c("file_path", "transcription"))
+  testthat::expect_equal(nrow(text_test), 1L)
+  testthat::expect_equal(text_test$file_path[1], wav_path)
+  testthat::expect_equal(text_test$transcription[1], " Hello.")
   testthat::expect_true(grepl("talkText", comment(text_test), fixed = TRUE))
 })
