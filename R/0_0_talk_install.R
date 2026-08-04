@@ -37,7 +37,8 @@ conda_args <- reticulate:::conda_args
 #'   Default is "talkrpp_condaenv".
 #' @param include_text logical; if TRUE (the default), additionally install
 #'   the Python packages used by the text package (sentence-transformers,
-#'   flair, bertopic, umap-learn, hdbscan, evaluate, jsonschema), so that the
+#'   flair, bertopic, umap-learn, hdbscan, evaluate, jsonschema) and the NLTK
+#'   tokenizer data it needs, so that the
 #'   environment serves both packages: after
 #'   \code{textrpp_initialize(condaenv = "talkrpp_condaenv", save_profile = TRUE)}
 #'   the text package uses it too. This step is non-fatal -- if it fails, talk
@@ -591,8 +592,20 @@ process_talkrpp_diarize_installation <- function(conda,
                        "umap-learn", "hdbscan", "evaluate", "jsonschema")
     message("Installing text-package Python dependencies (include_text = TRUE)...\n")
     tryCatch(
-      reticulate::conda_install(envname, text_packages, pip = TRUE, conda = conda,
-                                pip_options = c("-c", whisnemo_constraints)),
+      {
+        reticulate::conda_install(envname, text_packages, pip = TRUE, conda = conda,
+                                  pip_options = c("-c", whisnemo_constraints))
+        # The text package also needs NLTK's tokenizer data (its own installer
+        # would download these; the shared environment must provide them too).
+        message("Downloading NLTK tokenizer data (punkt, punkt_tab)...\n")
+        env_python <- reticulate::conda_python(envname = envname, conda = conda)
+        nltk_script <- tempfile(fileext = ".py")
+        writeLines(c("import nltk",
+                     "nltk.download('punkt', quiet=True)",
+                     "nltk.download('punkt_tab', quiet=True)"), nltk_script)
+        system2(env_python, nltk_script)
+        unlink(nltk_script)
+      },
       error = function(e) {
         warning(
           "The text-package Python dependencies could not be installed; ",

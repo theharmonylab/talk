@@ -40,7 +40,8 @@
 
 ## Minor changes and fixes
 * `talkrpp_install()` gained `include_text` (default TRUE): additionally
-  installs the text package's Python dependencies, so the talk environment
+  installs the text package's Python dependencies and the NLTK tokenizer
+  data it needs, so the talk environment
   also serves the text package -- enabling both packages in the same R
   session. This step is non-fatal (talk installs fully even if it fails);
   set `include_text = FALSE` for a leaner, talk-only environment.

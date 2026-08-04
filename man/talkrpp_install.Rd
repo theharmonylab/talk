@@ -58,7 +58,8 @@ package manager with conda-forge channel will be used for installing rpp.}
 
 \item{include_text}{logical; if TRUE (the default), additionally install
 the Python packages used by the text package (sentence-transformers,
-flair, bertopic, umap-learn, hdbscan, evaluate, jsonschema), so that the
+flair, bertopic, umap-learn, hdbscan, evaluate, jsonschema) and the NLTK
+tokenizer data it needs, so that the
 environment serves both packages: after
 \code{textrpp_initialize(condaenv = "talkrpp_condaenv", save_profile = TRUE)}
 the text package uses it too. This step is non-fatal -- if it fails, talk
