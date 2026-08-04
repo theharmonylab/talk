@@ -2,7 +2,7 @@ citHeader("To cite the talk-package in publications use:")
 
 bibentry(
   bibtype = "Manual",
-  title   = "talk: Analyses of audio recordings of speech using transformer models",
+  title   = "talk: Analyses of speech using transformer models",
   author  = c(
     person("Oscar", "Kjell"),
     person("Dhairya", "Umrania"),

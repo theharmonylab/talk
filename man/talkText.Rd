@@ -46,10 +46,10 @@ talkTranscribe(
 }
 \value{
 A tibble with one row per audio file and columns \code{file_path}
-and \code{transcription}. If a file fails to transcribe, its row gets
-\code{NA} in \code{transcription} (with a warning), so positions always
-match the input files. The settings used are saved as a comment
-(retrieve with \code{comment()}).
+  and \code{transcription}. If a file fails to transcribe, its row gets
+  \code{NA} in \code{transcription} (with a warning), so positions always
+  match the input files. The settings used are saved as a comment
+  (retrieve with \code{comment()}).
 }
 \description{
 Transcribes audio recordings to plain text using Whisper. Use

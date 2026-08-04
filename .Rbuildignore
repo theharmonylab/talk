@@ -3,6 +3,7 @@
 ^README$
 ^README\.Rmd$
 ^_pkgdown\.yml$
+^installation\.md$
 ^docs$
 ^pkgdown$
 ^\.github$
@@ -10,3 +11,4 @@
 ^codecov\.yml$
 ^\.positai$
 ^\.claude$
+^CLAUDE\.md$
