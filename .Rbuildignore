@@ -12,3 +12,4 @@
 ^\.positai$
 ^\.claude$
 ^CLAUDE\.md$
+^notebooks$
